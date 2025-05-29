@@ -4,7 +4,7 @@
     "depends": ["sale", "crm"],
     "author": "MATES Inc",
     "category": "Automation",
-    "summary": "Central place for all custom automation rules!!!",
+    "summary": "Central place for all custom automation rules!!! v1.0.0",
     "license": "LGPL-3",
     "installable": True
 }
