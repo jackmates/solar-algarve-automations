@@ -34,7 +34,6 @@ class CrmLead(models.Model):
     def _create_stage_based_activity(self, stage_id):
         """Create appropriate activity based on current stage"""
         stage = self.env['crm.stage'].browse(stage_id)
-        
         activity_configs = {
             'New': {
                 'title': '📞 First Contact – Qualification Script',
@@ -84,7 +83,8 @@ Schedule site visit and move to 'Qualified' stage
 □ Assess roof condition, size, and orientation<br/>
 □ Check electrical panel and available space<br/>
 □ Measure roof dimensions and note obstacles<br/>
-□ Take photos of roof, electrical panel, and site<br/>
+□ <b>Take photos of roof, electrical panel, and site</b><br/>
+<i>Upload photos in the <b>Photos & Documentation</b> tab below. Use the image uploader to add multiple images and view thumbnails directly.</i><br/>
 □ Discuss energy usage and electricity bills<br/>
 □ Explain solar system design options<br/>
 □ Answer customer questions and concerns<br/>
