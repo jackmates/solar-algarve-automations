@@ -357,7 +357,6 @@ Create installation meeting in calendar and move to 'Scheduling' stage
             }
         }
 
-    @api.multi
     def action_schedule_installation(self):
         """Action to schedule the installation meeting"""
         return {
