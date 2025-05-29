@@ -729,7 +729,7 @@ FOLLOW-UP SCHEDULE:
 
     @api.model
     def _cron_move_to_picking(self):
-        """Move leads to 'Picking' 5 working days before installation."""
+        """Move leads to 'Picking' if installation is within the next 5 working days (inclusive)."""
         today = fields.Date.context_today(self)
         days = 0
         check_date = today
@@ -738,12 +738,14 @@ FOLLOW-UP SCHEDULE:
             # Weekday: Mon=0 ... Sun=6
             if check_date.weekday() < 5:
                 days += 1
+        window_start = today
+        window_end = check_date + timedelta(days=1)
         picking_stage = self.env['crm.stage'].search([('name', '=', 'Picking')], limit=1)
         if not picking_stage:
             return
         leads = self.search([
-            ('x_installation_meeting_id.start', '>=', check_date),
-            ('x_installation_meeting_id.start', '<', check_date + timedelta(days=1)),
+            ('x_installation_meeting_id.start', '>=', window_start),
+            ('x_installation_meeting_id.start', '<', window_end),
             ('stage_id', '!=', picking_stage.id),
         ])
         for lead in leads:
@@ -751,7 +753,7 @@ FOLLOW-UP SCHEDULE:
             lead.message_post(
                 subject="↔️ Auto‑moved to Picking",
                 body=(
-                    f"Installation is scheduled for {check_date.strftime('%Y-%m-%d')}. "
+                    f"Installation is scheduled for {lead.x_installation_meeting_id.start.strftime('%Y-%m-%d') if lead.x_installation_meeting_id and lead.x_installation_meeting_id.start else 'Unknown'}. "
                     "Automatically moving to <b>Picking</b> stage."
                 )
             )
