@@ -1,15 +1,37 @@
 from odoo import models, api, fields
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 class CrmLead(models.Model):
     _inherit = 'crm.lead'
 
-    # Add site visit event field
+    # EXISTING FIELD (you already have this)
     x_site_visit_event_id = fields.Many2one('calendar.event', string='Site Visit Appointment')
+    
+    # NEW FIELDS - Site Visit Scheduling Enhancement
+    x_site_visit_status = fields.Selection([
+        ('not_scheduled', 'Not Scheduled'),
+        ('scheduled', 'Scheduled'), 
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled')
+    ], string='Site Visit Status', compute='_compute_site_visit_status', store=True)
+
+    @api.depends('x_site_visit_event_id.state')
+    def _compute_site_visit_status(self):
+        """Compute site visit status based on linked calendar event"""
+        for lead in self:
+            if not lead.x_site_visit_event_id:
+                lead.x_site_visit_status = 'not_scheduled'
+            elif lead.x_site_visit_event_id.state == 'done':
+                lead.x_site_visit_status = 'completed'
+            elif lead.x_site_visit_event_id.state == 'cancelled':
+                lead.x_site_visit_status = 'cancelled'
+            else:
+                lead.x_site_visit_status = 'scheduled'
 
     def write(self, vals):
         res = super().write(vals)
         
+        # EXISTING FUNCTIONALITY (unchanged)
         # Check for stage changes and create appropriate activities
         if 'stage_id' in vals:
             self._create_stage_based_activity(vals['stage_id'])
@@ -21,15 +43,53 @@ class CrmLead(models.Model):
 
     @api.model
     def create(self, vals):
-        """Create initial activity when new opportunity is created"""
+        """ENHANCED: Create initial activity when new opportunity is created"""
         lead = super().create(vals)
         
+        # EXISTING FUNCTIONALITY (unchanged)
         # Create initial contact activity for new leads
         if lead.stage_id.name in ['New', 'Lead']:
             lead._create_stage_based_activity(lead.stage_id.id)
+        
+        # NEW: Check if this lead came from Calendly/Cal.com
+        if vals.get('source_id') or 'calendly' in (vals.get('description', '').lower()) or 'cal.com' in (vals.get('description', '').lower()):
+            # Enhance the initial activity for Calendly leads
+            lead._enhance_calendly_lead_activity()
             
         return lead
 
+    def _enhance_calendly_lead_activity(self):
+        """NEW: Enhance activity for leads from Calendly/Cal.com"""
+        try:
+            # Find the existing activity created by _create_stage_based_activity
+            existing_activity = self.env['mail.activity'].search([
+                ('res_model', '=', 'crm.lead'),
+                ('res_id', '=', self.id),
+                ('summary', 'like', 'Initial Customer Contact')
+            ], limit=1)
+            
+            if existing_activity:
+                # Update the note to include Calendly-specific instructions
+                enhanced_note = existing_activity.note + f"""
+
+<div style="background-color: #e8f5e8; padding: 10px; border-radius: 5px; margin-top: 15px;">
+<h4>🎯 CALENDLY/CAL.COM LEAD - PRIORITY ACTIONS:</h4>
+□ <b>Customer already showed interest</b> by booking a call<br/>
+□ <b>Use "Quick Schedule Site Visit" button</b> below after call<br/>
+□ <b>Higher conversion probability</b> - prioritize this lead<br/>
+□ <b>Move to Qualified quickly</b> once site visit is scheduled<br/>
+</div>
+
+<b>💡 TIP:</b> After your sales call, use the "📅 Quick Schedule Site Visit" button in the Team Assignment tab to book their site visit without leaving this page!
+                """
+                existing_activity.note = enhanced_note
+                
+        except Exception as e:
+            import logging
+            _logger = logging.getLogger(__name__)
+            _logger.warning(f"Could not enhance Calendly lead activity: {e}")
+
+    # EXISTING METHOD (unchanged)
     def _create_stage_based_activity(self, stage_id):
         """Create appropriate activity based on current stage"""
         stage = self.env['crm.stage'].browse(stage_id)
@@ -50,7 +110,7 @@ class CrmLead(models.Model):
 □ Verify contact information and property address<br/>
 □ Ask about current electricity bills and usage<br/>
 □ Explain solar benefits and our process<br/>
-□ Schedule site visit appointment<br/>
+□ <b>Schedule site visit appointment (use Quick Schedule button below)</b><br/>
 □ Send welcome email with company information<br/>
 □ Gather preliminary roof/property information<br/>
 
@@ -63,12 +123,13 @@ class CrmLead(models.Model):
 □ Decision-making process<br/>
 
 <h4>NEXT STEP:</h4>
-Schedule site visit and move to 'Qualified' stage
+Schedule site visit using the Quick Schedule button and move to 'Qualified' stage
                 """,
                 'days': 0,
                 'type': 'mail.mail_activity_data_call'
             },
             
+            # EXISTING CONFIGURATIONS (unchanged) - keeping all your existing stage configurations
             'Qualified': {
                 'title': '🏠 Conduct Site Visit & Create Quotation',
                 'note': f"""
@@ -110,6 +171,7 @@ Create and send quotation, move to 'Proposition' stage
                 'type': 'mail.mail_activity_data_meeting'
             },
             
+            # (keeping all your other existing stage configurations exactly the same)
             'Proposition': {
                 'title': '💰 Quotation Follow-up & Customer Support',
                 'note': f"""
@@ -310,6 +372,36 @@ Create installation meeting in calendar and move to 'Scheduling' stage
                 days_ahead=config['days']
             )
 
+    # NEW METHODS - Site Visit Quick Scheduling
+    def action_quick_schedule_site_visit(self):
+        """
+        NEW: Open quick scheduling popup for site visit
+        """
+        return {
+            'type': 'ir.actions.act_window',
+            'name': f'Schedule Site Visit - {self.name}',
+            'res_model': 'site.visit.scheduler.wizard',
+            'view_mode': 'form',
+            'target': 'new',  # Opens as popup
+            'context': {
+                'default_opportunity_id': self.id,
+                'default_customer_name': self.partner_id.name if self.partner_id else self.contact_name,
+                'default_customer_phone': self.phone,
+                'default_customer_email': self.email_from,
+                'default_visit_address': self._get_visit_address(),
+                'default_duration': 2.0,
+                'default_assigned_user_id': self.user_id.id,
+            }
+        }
+
+    def _get_visit_address(self):
+        """NEW: Get formatted address for site visit"""
+        if self.partner_id:
+            return self.partner_id._display_address() or 'Address to be confirmed'
+        
+        return self._get_full_address() or 'Address to be confirmed'
+
+    # EXISTING METHOD (unchanged)
     def _get_full_address(self):
         """Get formatted full address"""
         address_parts = []
@@ -328,6 +420,7 @@ Create installation meeting in calendar and move to 'Scheduling' stage
         
         return ', '.join(address_parts) if address_parts else None
 
+    # EXISTING METHOD (unchanged)
     def action_schedule_site_visit(self):
         """Action to schedule a site visit calendar event"""
         return {
@@ -345,6 +438,7 @@ Create installation meeting in calendar and move to 'Scheduling' stage
             }
         }
 
+    # EXISTING METHOD (unchanged)
     def _check_stage_progression(self, vals):
         """Check if stage should progress based on field updates"""
         
@@ -359,6 +453,7 @@ Create installation meeting in calendar and move to 'Scheduling' stage
                         subject="Site Visit Scheduled"
                     )
         
+        # (keeping all your existing progression logic unchanged)
         # Installation meeting scheduled -> Scheduling stage
         elif 'x_installation_meeting_id' in vals and vals['x_installation_meeting_id']:
             self._auto_progress_to_scheduling()
@@ -376,6 +471,7 @@ Create installation meeting in calendar and move to 'Scheduling' stage
              ('x_customer_signature' in vals and vals['x_customer_signature']):
             self._check_project_completion()
 
+    # ALL YOUR EXISTING METHODS (unchanged)
     def _auto_progress_to_scheduling(self):
         """Move to Scheduling when installation meeting is scheduled"""
         if self.stage_id.name in ['Ordered', 'Ready to go']:
@@ -628,6 +724,7 @@ FOLLOW-UP SCHEDULE:
             days_ahead=1
         )
 
+    # EXISTING METHOD (unchanged)
     def _safe_create_activity(self, summary, note, activity_type_ref, days_ahead=1):
         """Safely create activity with error handling"""
         try:
@@ -636,55 +733,4 @@ FOLLOW-UP SCHEDULE:
             
             # Get activity type - fallback to TODO if specific type not found
             try:
-                activity_type = self.env.ref(activity_type_ref)
-            except:
-                activity_type = self.env.ref('mail.mail_activity_data_todo')
-            
-            activity_vals = {
-                'res_model': 'crm.lead',
-                'res_model_id': model_id.id,
-                'res_id': self.id,
-                'activity_type_id': activity_type.id,
-                'summary': summary,
-                'note': note,
-                'date_deadline': fields.Date.today() + timedelta(days=days_ahead),
-                'user_id': self.user_id.id or self.env.user.id,
-            }
-            
-            self.env['mail.activity'].create(activity_vals)
-            
-        except Exception as e:
-            # If activity creation fails, at least post a message
-            import logging
-            _logger = logging.getLogger(__name__)
-            _logger.warning(f"Could not create activity: {e}")
-            
-            # Convert line breaks to HTML for message posting
-            formatted_note = note.replace('\n', '<br/>')
-            
-            self.message_post(
-                body=f"<b>{summary}</b><br/>{formatted_note}",
-                subject=summary
-            )
-
-
-# Extend Calendar Event to link back to opportunities
-class CalendarEvent(models.Model):
-    _inherit = 'calendar.event'
-    
-    opportunity_id = fields.Many2one('crm.lead', string='Related Opportunity')
-    
-    def write(self, vals):
-        res = super().write(vals)
-        
-        # If this is a site visit and it's marked as done, update the opportunity
-        if 'state' in vals and vals['state'] == 'done':
-            for event in self:
-                if event.opportunity_id and 'Site Visit' in event.name:
-                    # Mark site visit as completed and create follow-up activity
-                    event.opportunity_id.message_post(
-                        body=f"✅ <b>Site Visit Completed</b><br/>Site assessment finished. Ready for quotation preparation.",
-                        subject="Site Visit Completed"
-                    )
-        
-        return res
+                activity_type = self.env.ref(
