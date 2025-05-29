@@ -265,10 +265,20 @@ DECISIONS NEEDED:
         if not self.opportunity_id:
             return
             
+        # Get the model ID for crm.lead
+        model_id = self.env['ir.model'].search([('model', '=', 'crm.lead')], limit=1)
+        
+        # Get activity type - fallback to TODO if specific type not found
+        try:
+            activity_type = self.env.ref(activity_type_ref)
+        except:
+            activity_type = self.env.ref('mail.mail_activity_data_todo')
+        
         activity_vals = {
             'res_model': 'crm.lead',
+            'res_model_id': model_id.id,
             'res_id': self.opportunity_id.id,
-            'activity_type_id': self.env.ref(activity_type_ref).id,
+            'activity_type_id': activity_type.id,
             'summary': summary,
             'note': note,
             'date_deadline': fields.Date.today() + timedelta(days=days_ahead),
@@ -313,12 +323,18 @@ class PurchaseOrder(models.Model):
                             pass
                         
                         # Create delivery planning activity
-                        sale_order._create_activity(
-                            '📦 Equipment Ready - Plan Delivery',
-                            f'All equipment for {sale_order.opportunity_id.name} is now available. Please coordinate delivery to installation site.',
-                            'mail.mail_activity_data_todo',
-                            days_ahead=1
-                        )
+                        activity_vals = {
+                            'res_model': 'crm.lead',
+                            'res_model_id': self.env['ir.model'].search([('model', '=', 'crm.lead')], limit=1).id,
+                            'res_id': sale_order.opportunity_id.id,
+                            'activity_type_id': self.env.ref('mail.mail_activity_data_todo').id,
+                            'summary': '📦 Equipment Ready - Plan Delivery',
+                            'note': f'All equipment for {sale_order.opportunity_id.name} is now available. Please coordinate delivery to installation site.',
+                            'date_deadline': fields.Date.today() + timedelta(days=1),
+                            'user_id': sale_order.opportunity_id.user_id.id or self.env.user.id,
+                        }
+                        
+                        self.env['mail.activity'].create(activity_vals)
                         
                         # Notify team
                         sale_order.opportunity_id.message_post(
