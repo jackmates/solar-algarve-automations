@@ -512,6 +512,17 @@ Create installation meeting in calendar and move to 'Scheduling' stage
                 
                 # Create permit tracking activity
                 self._create_permit_tracking_activity()
+                # Create action to gather & send permits and contracts
+                self._safe_create_activity(
+                    '✉️ Gather & Send Permits & Contracts',
+                    f"<h4>✉️ GATHER & SEND PERMITS & CONTRACTS</h4>"
+                    f"<b>Project:</b> {self.name}<br/>"
+                    "□ Gather all required permits and contracts<br/>"
+                    "□ Review and finalize any missing signatures or data<br/>"
+                    "□ Send all permits and contracts to appropriate authorities on behalf of the customer<br/>",
+                    'mail.mail_activity_data_todo',
+                    days_ahead=0
+                )
                 
                 self.message_post(
                     body="📋 <b>Permits Submitted</b><br/>Installation permits have been submitted for approval.",
