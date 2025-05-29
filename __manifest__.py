@@ -2,7 +2,7 @@
     "name": "Custom Automation Rules",
     "version": "16.0.1.0.0",
     "depends": ["sale", "crm"],
-    "author": "YourCompany",
+    "author": "MATES",
     "category": "Automation",
     "summary": "Central place for all custom automation rules",
     "license": "LGPL-3",
