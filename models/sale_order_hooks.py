@@ -6,6 +6,7 @@ class CrmLead(models.Model):
 
     # Add site visit event field
     x_site_visit_event_id = fields.Many2one('calendar.event', string='Site Visit Appointment')
+    x_fully_qualified = fields.Boolean(string="Fully Qualified", help="Tick to confirm lead is qualified and ready for quotation")
 
     def write(self, vals):
         res = super().write(vals)
@@ -342,9 +343,13 @@ Create installation meeting in calendar and move to 'Scheduling' stage
             'context': {
                 'default_name': f'Site Visit - {self.name}',
                 'default_description': f'Solar site assessment for {self.partner_id.name if self.partner_id else self.contact_name}',
-                'default_duration': 2.0,  # 2 hours
+                'default_duration': 2.0,
                 'default_opportunity_id': self.id,
                 'default_partner_ids': [(6, 0, [self.partner_id.id] if self.partner_id else [])],
+            },
+            'on_close': {
+                'type': 'ir.actions.client',
+                'tag': 'reload',
             }
         }
 
@@ -362,7 +367,18 @@ Create installation meeting in calendar and move to 'Scheduling' stage
                         body="📅 <b>Site Visit Scheduled</b><br/>Moving to Qualified stage for site assessment.",
                         subject="Site Visit Scheduled"
                     )
-                    
+        
+        # Fully qualified checkbox ticked -> move to Qualified (if not already)
+        elif 'x_fully_qualified' in vals and vals['x_fully_qualified']:
+            if self.stage_id.name == 'New':
+                qualified_stage = self.env['crm.stage'].search([('name', '=', 'Qualified')], limit=1)
+                if qualified_stage:
+                    self.stage_id = qualified_stage.id
+                    self._create_stage_based_activity(qualified_stage.id)
+                    self.message_post(
+                        body="✅ <b>Lead Fully Qualified</b><br/>Moved to Qualified stage based on manual confirmation.",
+                        subject="Lead Qualified"
+                    )
         
         # Installation meeting scheduled -> Scheduling stage
         elif 'x_installation_meeting_id' in vals and vals['x_installation_meeting_id']:
