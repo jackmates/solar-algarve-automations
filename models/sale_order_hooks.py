@@ -18,6 +18,32 @@ class CrmLead(models.Model):
         # Check for stage changes and create appropriate activities
         if 'stage_id' in vals:
             self._create_stage_based_activity(vals['stage_id'])
+            # If moved manually to Picking, trigger picking preparation activity
+            stage = self.env['crm.stage'].browse(vals['stage_id'])
+            if stage.name == 'Picking':
+                for lead in self:
+                    order = self.env['sale.order'].search([
+                        ('opportunity_id', '=', lead.id),
+                        ('state', '=', 'sale'),
+                    ], limit=1)
+                    if order:
+                        order_link = f"/web#id={order.id}&model=sale.order&view_type=form"
+                        order_name = order.name
+                    else:
+                        order_link = ''
+                        order_name = 'Customer Order'
+                    note = (
+                        f"<h4>🧰 ORDER PREPARATION</h4>"
+                        f"<b>Customer Order:</b> <a href='{order_link}' target='_blank'>{order_name}</a><br/>"
+                        "□ Gather all equipment items as per customer order<br/>"
+                        "□ Begin building BRES boxes and other pre-install assemblies<br/>"
+                    )
+                    lead._safe_create_activity(
+                        '🧰 Prepare for Picking',
+                        note,
+                        'mail.mail_activity_data_todo',
+                        days_ahead=0
+                    )
         
         # Auto-progress stages based on field updates
         self._check_stage_progression(vals)
