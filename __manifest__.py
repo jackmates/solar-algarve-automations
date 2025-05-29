@@ -7,8 +7,7 @@
     "summary": "Central place for all custom automation rules!!! v1.0.1",
     "license": "LGPL-3",
     "data": [
-        "views/crm_lead_installation_views.xml",
         "data/cron_move_to_picking.xml",
     ],
     "installable": True
-}
+} 
