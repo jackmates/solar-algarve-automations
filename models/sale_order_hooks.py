@@ -7,6 +7,7 @@ class CrmLead(models.Model):
     # Add site visit event field
     x_site_visit_event_id = fields.Many2one('calendar.event', string='Site Visit Appointment')
     x_fully_qualified = fields.Boolean(string="Fully Qualified", help="Tick to confirm lead is qualified and ready for quotation")
+    x_installation_photo_ids = fields.One2many('installation.photo', 'lead_id', string="Installation Photos")
 
     def write(self, vals):
         res = super().write(vals)
@@ -709,4 +710,14 @@ class CalendarEvent(models.Model):
                     )
         
         return res
+
+
+# Gallery-friendly image model
+class InstallationPhoto(models.Model):
+    _name = 'installation.photo'
+    _description = 'Installation Photo'
+
+    name = fields.Char('Filename')
+    image = fields.Binary('Image', attachment=True)
+    lead_id = fields.Many2one('crm.lead', string='Opportunity')
 
