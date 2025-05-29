@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        
+        <!-- Enhanced CRM Form with Site Visit Scheduling -->
+        <record id="crm_lead_view_form_site_visit_scheduler" model="ir.ui.view">
+            <field name="name">CRM Lead Form - Site Visit Scheduler</field>
+            <field name="model">crm.lead</field>
+            <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+            <field name="arch" type="xml">
+                
+                <!-- Add Site Visit section to Team Assignment tab -->
+                <page name="team_assignment" position="inside">
+                    <group string="Site Visit Scheduling" name="site_visit_group">
+                        <group string="Current Status">
+                            <field name="x_site_visit_event_id" 
+                                   readonly="1"
+                                   options="{'no_create': True, 'no_open': True}"/>
+                            <field name="x_site_visit_status" readonly="1"/>
+                        </group>
+                        <group string="Quick Actions">
+                            <div class="oe_button_box" style="margin-top: 10px;">
+                                <!-- Quick Schedule Button (Primary) -->
+                                <button name="action_quick_schedule_site_visit" 
+                                        string="📅 Quick Schedule Site Visit" 
+                                        type="object" 
+                                        class="btn-primary btn-lg"
+                                        style="margin: 5px;"
+                                        attrs="{'invisible': [('x_site_visit_event_id', '!=', False)]}"/>
+                                
+                                <!-- Full Schedule Button (Secondary) -->
+                                <button name="action_schedule_site_visit_full" 
+                                        string="🗓️ Advanced Schedule" 
+                                        type="object" 
+                                        class="btn-secondary"
+                                        style="margin: 5px;"
+                                        attrs="{'invisible': [('x_site_visit_event_id', '!=', False)]}"/>
+                                
+                                <!-- View Scheduled Visit -->
+                                <button name="action_view_site_visit" 
+                                        string="👁️ View Site Visit" 
+                                        type="object" 
+                                        class="btn-info"
+                                        style="margin: 5px;"
+                                        attrs="{'invisible': [('x_site_visit_event_id', '=', False)]}"/>
+                                
+                                <!-- Reschedule Button -->
+                                <button name="action_quick_schedule_site_visit" 
+                                        string="🔄 Reschedule" 
+                                        type="object" 
+                                        class="btn-warning"
+                                        style="margin: 5px;"
+                                        attrs="{'invisible': ['|', ('x_site_visit_event_id', '=', False), ('x_site_visit_status', '=', 'completed')]}"/>
+                            </div>
+                        </group>
+                    </group>
+                </page>
+
+                <!-- Add Site Visit smart button to button box -->
+                <div name="button_box" position="inside">
+                    <button name="action_view_site_visit" 
+                            type="object" 
+                            class="oe_stat_button" 
+                            icon="fa-calendar-check-o"
+                            attrs="{'invisible': [('x_site_visit_event_id', '=', False)]}">
+                        <div class="o_stat_info">
+                            <span class="o_stat_text">Site Visit</span>
+                            <field name="x_site_visit_status" class="o_stat_value"/>
+                        </div>
+                    </button>
+                </div>
+
+            </field>
+        </record>
+
+        <!-- Site Visit Scheduler Wizard Form -->
+        <record id="site_visit_scheduler_wizard_form" model="ir.ui.view">
+            <field name="name">Site Visit Quick Scheduler</field>
+            <field name="model">site.visit.scheduler.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Schedule Site Visit">
+                    <header>
+                        <button name="action_schedule_visit" 
+                                string="Schedule Visit" 
+                                type="object" 
+                                class="btn-primary"/>
+                        <button string="Cancel" 
+                                class="btn-secondary" 
+                                special="cancel"/>
+                    </header>
+                    
+                    <sheet>
+                        <group>
+                            <group string="Customer Information" name="customer_info">
+                                <field name="opportunity_id" invisible="1"/>
+                                <field name="customer_name" readonly="1"/>
+                                <field name="customer_
