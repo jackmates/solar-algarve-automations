@@ -1,0 +1,10 @@
+{
+    "name": "Custom Automation Rules",
+    "version": "16.0.1.0.0",
+    "depends": ["sale", "crm"],
+    "author": "YourCompany",
+    "category": "Automation",
+    "summary": "Central place for all custom automation rules",
+    "license": "LGPL-3",
+    "installable": True
+}
