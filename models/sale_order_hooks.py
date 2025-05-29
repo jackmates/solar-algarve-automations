@@ -44,6 +44,23 @@ class CrmLead(models.Model):
                         'mail.mail_activity_data_todo',
                         days_ahead=0
                     )
+            # If moved manually to Permits, trigger permits gathering activity
+            stage = self.env['crm.stage'].browse(vals['stage_id'])
+            if stage.name == 'Permits':
+                for lead in self:
+                    note = (
+                        "<h4>✉️ GATHER & SEND PERMITS & CONTRACTS</h4>"
+                        f"<b>Project:</b> {lead.name}<br/>"
+                        "□ Gather all required permits and contracts<br/>"
+                        "□ Review and finalize any missing signatures or data<br/>"
+                        "□ Send all permits and contracts to appropriate authorities on behalf of the customer<br/>"
+                    )
+                    lead._safe_create_activity(
+                        '✉️ Gather & Send Permits & Contracts',
+                        note,
+                        'mail.mail_activity_data_todo',
+                        days_ahead=0
+                    )
         
         # Auto-progress stages based on field updates
         self._check_stage_progression(vals)
