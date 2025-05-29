@@ -15,18 +15,20 @@ class CrmLead(models.Model):
         ('cancelled', 'Cancelled')
     ], string='Site Visit Status', compute='_compute_site_visit_status', store=True)
 
-    @api.depends('x_site_visit_event_id.state')
+    @api.depends('x_site_visit_event_id', 'x_site_visit_event_id.start', 'x_site_visit_event_id.stop')
     def _compute_site_visit_status(self):
         """Compute site visit status based on linked calendar event"""
         for lead in self:
             if not lead.x_site_visit_event_id:
                 lead.x_site_visit_status = 'not_scheduled'
-            elif lead.x_site_visit_event_id.state == 'done':
+            elif lead.x_site_visit_event_id.stop and lead.x_site_visit_event_id.stop < fields.Datetime.now():
+                # Event has passed, consider it completed
                 lead.x_site_visit_status = 'completed'
-            elif lead.x_site_visit_event_id.state == 'cancelled':
-                lead.x_site_visit_status = 'cancelled'
-            else:
+            elif lead.x_site_visit_event_id.start:
+                # Event is scheduled for future
                 lead.x_site_visit_status = 'scheduled'
+            else:
+                lead.x_site_visit_status = 'not_scheduled'
 
     def write(self, vals):
         res = super().write(vals)
