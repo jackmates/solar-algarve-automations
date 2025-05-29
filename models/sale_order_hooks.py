@@ -764,6 +764,16 @@ class CalendarEvent(models.Model):
     _inherit = 'calendar.event'
     
     opportunity_id = fields.Many2one('crm.lead', string='Related Opportunity')
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        events = super(CalendarEvent, self).create(vals_list)
+        for ev in events:
+            if ev.opportunity_id:
+                ev.opportunity_id.write({
+                    'x_installation_meeting_id': ev.id
+                })
+        return events
     
     def write(self, vals):
         res = super().write(vals)
