@@ -721,3 +721,20 @@ class InstallationPhoto(models.Model):
     image = fields.Binary('Image', attachment=True)
     lead_id = fields.Many2one('crm.lead', string='Opportunity')
 
+    @api.model
+    def create(self, vals):
+        record = super().create(vals)
+
+        # Also create a standard ir.attachment record for visibility in chatter
+        if record.image and record.lead_id:
+            self.env['ir.attachment'].create({
+                'name': record.name or 'Installation Photo',
+                'datas': record.image,
+                'res_model': 'crm.lead',
+                'res_id': record.lead_id.id,
+                'type': 'binary',
+                'mimetype': 'image/png',  # optionally detect from filename
+            })
+
+        return record
+
