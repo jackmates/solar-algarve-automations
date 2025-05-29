@@ -8,6 +8,9 @@ class CrmLead(models.Model):
     x_site_visit_event_id = fields.Many2one('calendar.event', string='Site Visit Appointment')
     x_fully_qualified = fields.Boolean(string="Fully Qualified", help="Tick to confirm lead is qualified and ready for quotation")
     x_installation_photo_ids = fields.One2many('installation.photo', 'lead_id', string="Installation Photos")
+    x_installation_meeting_id = fields.Many2one(
+        'calendar.event', string='Installation Appointment',
+        help="Schedule the installation meeting")
 
     def write(self, vals):
         res = super().write(vals)
@@ -354,6 +357,25 @@ Create installation meeting in calendar and move to 'Scheduling' stage
             }
         }
 
+    @api.multi
+    def action_schedule_installation(self):
+        """Action to schedule the installation meeting"""
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Schedule Installation',
+            'res_model': 'calendar.event',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_name': f'Installation - {self.name}',
+                'default_description': f'Installation for {self.partner_id.name or self.contact_name}',
+                'default_duration': 4.0,
+                'default_opportunity_id': self.id,
+                'default_partner_ids': [(6, 0, [self.partner_id.id] if self.partner_id else [])],
+            },
+            'on_close': {'type': 'ir.actions.client', 'tag': 'reload'},
+        }
+
     def _check_stage_progression(self, vals):
         """Check if stage should progress based on field updates"""
         
@@ -528,6 +550,22 @@ Create installation meeting in calendar and move to 'Scheduling' stage
             'mail.mail_activity_data_todo',
             days_ahead=1
         )
+        # reminder one week ahead of the installation meeting
+        if self.x_installation_meeting_id and self.x_installation_meeting_id.start:
+            install_dt = self.x_installation_meeting_id.start
+            # parse if it's a string
+            if isinstance(install_dt, str):
+                install_dt = fields.Datetime.from_string(install_dt)
+            from datetime import timedelta as _timedelta
+            reminder_date = (install_dt - _timedelta(days=7)).date()
+            days_until_reminder = (reminder_date - fields.Date.today()).days
+            if days_until_reminder > 0:
+                self._safe_create_activity(
+                    '🔔 Installation Scheduling Reminder',
+                    '<h4>Prepare for installation:</h4>□ Contact customer to arrange installation based on weather and timing<br/>□ Begin building BRES boxes and other pre-install tasks',
+                    'mail.mail_activity_data_todo',
+                    days_ahead=days_until_reminder
+                )
 
     def _create_progress_based_activity(self, progress_value):
         """Create appropriate activity based on installation progress"""
