@@ -23,11 +23,12 @@ class CrmLead(models.Model):
     def create(self, vals):
         """Create initial activity when new opportunity is created"""
         lead = super().create(vals)
-        
-        # Create initial contact activity for new leads
+
+        # Create intro call activity for new leads
         if lead.stage_id.name in ['New', 'Lead']:
             lead._create_stage_based_activity(lead.stage_id.id)
-            
+            lead._create_intro_call_activity()
+        
         return lead
 
     def _create_stage_based_activity(self, stage_id):
@@ -310,6 +311,29 @@ Create installation meeting in calendar and move to 'Scheduling' stage
                 days_ahead=config['days']
             )
 
+    def _create_intro_call_activity(self):
+        """Create initial intro call activity to qualify lead and schedule site visit"""
+        self._safe_create_activity(
+            "📞 First Contact – Qualification Script",
+            f"""
+<h4>INTRO CALL SCRIPT – {self.name}</h4>
+
+<b>Customer:</b> {self.partner_id.name if self.partner_id else self.contact_name or 'Contact details needed'}<br/>
+<b>Phone:</b> {self.phone or 'Phone number needed'}<br/>
+<b>Email:</b> {self.email_from or 'Email needed'}<br/>
+
+<h4>QUALIFICATION CHECKLIST:</h4>
+□ Confirm customer goals and timeline<br/>
+□ Discuss current electricity usage and costs<br/>
+□ Identify decision-makers and budget expectations<br/>
+□ Explain site visit and assessment process<br/>
+□ Schedule site visit using the “Schedule Site Visit” button on this page<br/>
+□ Record any relevant notes in the CRM<br/>
+            """,
+            'mail.mail_activity_data_call',
+            days_ahead=1
+        )
+
     def _get_full_address(self):
         """Get formatted full address"""
         address_parts = []
@@ -354,10 +378,12 @@ Create installation meeting in calendar and move to 'Scheduling' stage
                 qualified_stage = self.env['crm.stage'].search([('name', '=', 'Qualified')], limit=1)
                 if qualified_stage:
                     self.stage_id = qualified_stage.id
+                    self._create_stage_based_activity(qualified_stage.id)
                     self.message_post(
                         body="📅 <b>Site Visit Scheduled</b><br/>Moving to Qualified stage for site assessment.",
                         subject="Site Visit Scheduled"
                     )
+                    
         
         # Installation meeting scheduled -> Scheduling stage
         elif 'x_installation_meeting_id' in vals and vals['x_installation_meeting_id']:
@@ -688,3 +714,4 @@ class CalendarEvent(models.Model):
                     )
         
         return res
+
