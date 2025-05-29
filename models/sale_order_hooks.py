@@ -757,21 +757,21 @@ FOLLOW-UP SCHEDULE:
                     "Automatically moving to <b>Picking</b> stage."
                 )
             )
-            # Create picking preparation activity linking to the quotation
-            sale = self.env['sale.order'].search([
+            # Create picking preparation activity linking to the customer order
+            order = self.env['sale.order'].search([
                 ('opportunity_id', '=', lead.id),
-                ('state', 'in', ['draft', 'sent'])
+                ('state', '=', 'sale'),
             ], limit=1)
-            if sale:
-                sale_link = f"/web#id={sale.id}&model=sale.order&view_type=form"
-                sale_name = sale.name
+            if order:
+                order_link = f"/web#id={order.id}&model=sale.order&view_type=form"
+                order_name = order.name
             else:
-                sale_link = ''
-                sale_name = 'Quotation'
+                order_link = ''
+                order_name = 'Customer Order'
             note = (
-                f"<h4>🧰 PICKING PREPARATION</h4>"
-                f"<b>Quotation:</b> <a href='{sale_link}' target='_blank'>{sale_name}</a><br/>"
-                "□ Gather all equipment items as per quotation<br/>"
+                f"<h4>🧰 ORDER PREPARATION</h4>"
+                f"<b>Customer Order:</b> <a href='{order_link}' target='_blank'>{order_name}</a><br/>"
+                "□ Gather all equipment items as per customer order<br/>"
                 "□ Begin building BRES boxes and other pre-install assemblies<br/>"
             )
             lead._safe_create_activity(
