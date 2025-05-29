@@ -364,6 +364,17 @@ Create installation meeting in calendar and move to 'Scheduling' stage
                 """,
                 'days': 1,
                 'type': 'mail.mail_activity_data_call'
+            },
+            'Commissioned': {
+                'title': '📃 Send Final Invoice',
+                'note': f"""
+<h4>📃 FINAL INVOICE - {self.name}</h4>
+□ Generate final invoice for the customer<br/>
+□ Review invoice details and totals<br/>
+□ Send invoice to customer and log the dispatch<br/>
+""",
+                'days': 0,
+                'type': 'mail.mail_activity_data_todo'
             }
         }
         
