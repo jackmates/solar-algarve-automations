@@ -24,10 +24,9 @@ class CrmLead(models.Model):
         """Create initial activity when new opportunity is created"""
         lead = super().create(vals)
 
-        # Create intro call activity for new leads
+        # Create initial activity for new leads
         if lead.stage_id.name in ['New', 'Lead']:
             lead._create_stage_based_activity(lead.stage_id.id)
-            lead._create_intro_call_activity()
         
         return lead
 
@@ -37,35 +36,36 @@ class CrmLead(models.Model):
         
         activity_configs = {
             'New': {
-                'title': '📞 Initial Customer Contact & Site Visit Setup',
+                'title': '📞 First Contact – Qualification Script',
                 'note': f"""
-<h3>🏠 NEW SOLAR LEAD - {self.name}</h3>
+<h3>📞 FIRST CONTACT – {self.name}</h3>
 
 <b>Customer:</b> {self.partner_id.name if self.partner_id else self.contact_name or 'Contact details needed'}<br/>
 <b>Phone:</b> {self.phone or 'Phone number needed'}<br/>
 <b>Email:</b> {self.email_from or 'Email needed'}<br/>
 <b>Address:</b> {self._get_full_address() or 'Address needed'}<br/>
 
-<h4>INITIAL CONTACT CHECKLIST:</h4>
-□ Call customer to introduce company and services<br/>
-□ Verify contact information and property address<br/>
-□ Ask about current electricity bills and usage<br/>
-□ Explain solar benefits and our process<br/>
-□ Schedule site visit appointment<br/>
-□ Send welcome email with company information<br/>
-□ Gather preliminary roof/property information<br/>
+<h4>QUALIFICATION CHECKLIST:</h4>
+□ Confirm customer goals and timeline<br/>
+□ Discuss current electricity usage and costs<br/>
+□ Identify decision-makers and budget expectations<br/>
+□ Explain site visit and assessment process<br/>
+□ Schedule site visit using the “Schedule Site Visit” button on this page<br/>
+□ Record any relevant notes in the CRM<br/>
 
-<h4>QUALIFICATION QUESTIONS:</h4>
+<h4>OPTIONAL QUESTIONS TO DEEPEN QUALIFICATION:</h4>
 □ Property ownership (own vs rent)<br/>
 □ Roof condition and age<br/>
 □ Current monthly electricity cost<br/>
 □ Interest level and timeline<br/>
 □ Budget considerations<br/>
 □ Decision-making process<br/>
+□ Will they be home during the site visit?<br/>
+□ Any special access or roof concerns?<br/>
 
 <h4>NEXT STEP:</h4>
 Schedule site visit and move to 'Qualified' stage
-                """,
+  """,
                 'days': 0,
                 'type': 'mail.mail_activity_data_call'
             },
@@ -311,28 +311,7 @@ Create installation meeting in calendar and move to 'Scheduling' stage
                 days_ahead=config['days']
             )
 
-    def _create_intro_call_activity(self):
-        """Create initial intro call activity to qualify lead and schedule site visit"""
-        self._safe_create_activity(
-            "📞 First Contact – Qualification Script",
-            f"""
-<h4>INTRO CALL SCRIPT – {self.name}</h4>
-
-<b>Customer:</b> {self.partner_id.name if self.partner_id else self.contact_name or 'Contact details needed'}<br/>
-<b>Phone:</b> {self.phone or 'Phone number needed'}<br/>
-<b>Email:</b> {self.email_from or 'Email needed'}<br/>
-
-<h4>QUALIFICATION CHECKLIST:</h4>
-□ Confirm customer goals and timeline<br/>
-□ Discuss current electricity usage and costs<br/>
-□ Identify decision-makers and budget expectations<br/>
-□ Explain site visit and assessment process<br/>
-□ Schedule site visit using the “Schedule Site Visit” button on this page<br/>
-□ Record any relevant notes in the CRM<br/>
-            """,
-            'mail.mail_activity_data_call',
-            days_ahead=1
-        )
+    # _create_intro_call_activity method removed
 
     def _get_full_address(self):
         """Get formatted full address"""
