@@ -1,39 +1,15 @@
 from odoo import models, api, fields
-from datetime import timedelta, datetime
+from datetime import timedelta
 
 class CrmLead(models.Model):
     _inherit = 'crm.lead'
 
-    # EXISTING FIELD (you already have this)
+    # Add site visit event field
     x_site_visit_event_id = fields.Many2one('calendar.event', string='Site Visit Appointment')
-    
-    # NEW FIELDS - Site Visit Scheduling Enhancement
-    x_site_visit_status = fields.Selection([
-        ('not_scheduled', 'Not Scheduled'),
-        ('scheduled', 'Scheduled'), 
-        ('completed', 'Completed'),
-        ('cancelled', 'Cancelled')
-    ], string='Site Visit Status', compute='_compute_site_visit_status', store=True)
-
-    @api.depends('x_site_visit_event_id', 'x_site_visit_event_id.start', 'x_site_visit_event_id.stop')
-    def _compute_site_visit_status(self):
-        """Compute site visit status based on linked calendar event"""
-        for lead in self:
-            if not lead.x_site_visit_event_id:
-                lead.x_site_visit_status = 'not_scheduled'
-            elif lead.x_site_visit_event_id.stop and lead.x_site_visit_event_id.stop < fields.Datetime.now():
-                # Event has passed, consider it completed
-                lead.x_site_visit_status = 'completed'
-            elif lead.x_site_visit_event_id.start:
-                # Event is scheduled for future
-                lead.x_site_visit_status = 'scheduled'
-            else:
-                lead.x_site_visit_status = 'not_scheduled'
 
     def write(self, vals):
         res = super().write(vals)
         
-        # EXISTING FUNCTIONALITY (unchanged)
         # Check for stage changes and create appropriate activities
         if 'stage_id' in vals:
             self._create_stage_based_activity(vals['stage_id'])
@@ -45,53 +21,15 @@ class CrmLead(models.Model):
 
     @api.model
     def create(self, vals):
-        """ENHANCED: Create initial activity when new opportunity is created"""
+        """Create initial activity when new opportunity is created"""
         lead = super().create(vals)
         
-        # EXISTING FUNCTIONALITY (unchanged)
         # Create initial contact activity for new leads
         if lead.stage_id.name in ['New', 'Lead']:
             lead._create_stage_based_activity(lead.stage_id.id)
-        
-        # NEW: Check if this lead came from Calendly/Cal.com
-        if vals.get('source_id') or 'calendly' in (vals.get('description', '').lower()) or 'cal.com' in (vals.get('description', '').lower()):
-            # Enhance the initial activity for Calendly leads
-            lead._enhance_calendly_lead_activity()
             
         return lead
 
-    def _enhance_calendly_lead_activity(self):
-        """NEW: Enhance activity for leads from Calendly/Cal.com"""
-        try:
-            # Find the existing activity created by _create_stage_based_activity
-            existing_activity = self.env['mail.activity'].search([
-                ('res_model', '=', 'crm.lead'),
-                ('res_id', '=', self.id),
-                ('summary', 'like', 'Initial Customer Contact')
-            ], limit=1)
-            
-            if existing_activity:
-                # Update the note to include Calendly-specific instructions
-                enhanced_note = existing_activity.note + f"""
-
-<div style="background-color: #e8f5e8; padding: 10px; border-radius: 5px; margin-top: 15px;">
-<h4>🎯 CALENDLY/CAL.COM LEAD - PRIORITY ACTIONS:</h4>
-□ <b>Customer already showed interest</b> by booking a call<br/>
-□ <b>Use "Quick Schedule Site Visit" button</b> below after call<br/>
-□ <b>Higher conversion probability</b> - prioritize this lead<br/>
-□ <b>Move to Qualified quickly</b> once site visit is scheduled<br/>
-</div>
-
-<b>💡 TIP:</b> After your sales call, use the "📅 Quick Schedule Site Visit" button in the Team Assignment tab to book their site visit without leaving this page!
-                """
-                existing_activity.note = enhanced_note
-                
-        except Exception as e:
-            import logging
-            _logger = logging.getLogger(__name__)
-            _logger.warning(f"Could not enhance Calendly lead activity: {e}")
-
-    # EXISTING METHOD (unchanged)
     def _create_stage_based_activity(self, stage_id):
         """Create appropriate activity based on current stage"""
         stage = self.env['crm.stage'].browse(stage_id)
@@ -112,7 +50,7 @@ class CrmLead(models.Model):
 □ Verify contact information and property address<br/>
 □ Ask about current electricity bills and usage<br/>
 □ Explain solar benefits and our process<br/>
-□ <b>Schedule site visit appointment (use Quick Schedule button below)</b><br/>
+□ Schedule site visit appointment<br/>
 □ Send welcome email with company information<br/>
 □ Gather preliminary roof/property information<br/>
 
@@ -125,13 +63,12 @@ class CrmLead(models.Model):
 □ Decision-making process<br/>
 
 <h4>NEXT STEP:</h4>
-Schedule site visit using the Quick Schedule button and move to 'Qualified' stage
+Schedule site visit and move to 'Qualified' stage
                 """,
                 'days': 0,
                 'type': 'mail.mail_activity_data_call'
             },
             
-            # EXISTING CONFIGURATIONS (unchanged) - keeping all your existing stage configurations
             'Qualified': {
                 'title': '🏠 Conduct Site Visit & Create Quotation',
                 'note': f"""
@@ -173,7 +110,6 @@ Create and send quotation, move to 'Proposition' stage
                 'type': 'mail.mail_activity_data_meeting'
             },
             
-            # (keeping all your other existing stage configurations exactly the same)
             'Proposition': {
                 'title': '💰 Quotation Follow-up & Customer Support',
                 'note': f"""
@@ -374,251 +310,6 @@ Create installation meeting in calendar and move to 'Scheduling' stage
                 days_ahead=config['days']
             )
 
-
-# NEW CLASS - Site Visit Scheduler Wizard
-class SiteVisitSchedulerWizard(models.TransientModel):
-    _name = 'site.visit.scheduler.wizard'
-    _description = 'Quick Site Visit Scheduler'
-
-    opportunity_id = fields.Many2one('crm.lead', string='Opportunity', required=True)
-    customer_name = fields.Char(string='Customer Name', required=True)
-    customer_phone = fields.Char(string='Phone Number')
-    customer_email = fields.Char(string='Email Address')
-    visit_address = fields.Text(string='Visit Address', required=True)
-    
-    visit_date = fields.Datetime(string='Visit Date & Time', required=True, 
-                                default=lambda self: fields.Datetime.now() + timedelta(days=1, hours=10))
-    duration = fields.Float(string='Duration (hours)', default=2.0)
-    assigned_user_id = fields.Many2one('res.users', string='Assigned To', required=True,
-                                      default=lambda self: self.env.user)
-    
-    visit_notes = fields.Text(string='Visit Notes', 
-                             default="Solar site assessment - roof evaluation, electrical panel inspection, and system design consultation.")
-    
-    send_confirmation = fields.Boolean(string='Send Email Confirmation', default=True)
-    
-    def action_schedule_visit(self):
-        """Create the site visit calendar event and update opportunity"""
-        
-        # Create calendar event
-        calendar_vals = {
-            'name': f'Site Visit - {self.customer_name} ({self.opportunity_id.name})',
-            'description': f"""
-Solar Site Visit Assessment
-
-Customer: {self.customer_name}
-Phone: {self.customer_phone or 'Not provided'}
-Email: {self.customer_email or 'Not provided'}
-
-Address: {self.visit_address}
-
-Agenda:
-- Roof condition and orientation assessment
-- Electrical panel evaluation
-- Shading analysis
-- Preliminary system sizing
-- Customer consultation
-
-Notes: {self.visit_notes}
-            """,
-            'start': self.visit_date,
-            'stop': self.visit_date + timedelta(hours=self.duration),
-            'duration': self.duration,
-            'user_id': self.assigned_user_id.id,
-            'partner_ids': [(6, 0, [self.opportunity_id.partner_id.id] if self.opportunity_id.partner_id else [])],
-            'opportunity_id': self.opportunity_id.id,
-            'location': self.visit_address,
-            'privacy': 'public',
-            'show_as': 'busy',
-        }
-        
-        calendar_event = self.env['calendar.event'].create(calendar_vals)
-        
-        # Update the opportunity with site visit link
-        self.opportunity_id.write({
-            'x_site_visit_event_id': calendar_event.id,
-        })
-        
-        # Send confirmation email if requested
-        if self.send_confirmation and self.customer_email:
-            self._send_confirmation_email(calendar_event)
-        
-        # Create follow-up activity for post-visit quotation
-        self._create_post_site_visit_activity()
-        
-        # Post message to opportunity
-        self.opportunity_id.message_post(
-            body=f"""
-📅 <b>Site Visit Scheduled</b><br/>
-<b>Date:</b> {self.visit_date.strftime('%Y-%m-%d %H:%M')}<br/>
-<b>Duration:</b> {self.duration} hours<br/>
-<b>Assigned to:</b> {self.assigned_user_id.name}<br/>
-<b>Address:</b> {self.visit_address}<br/>
-{'<b>Email confirmation sent to customer</b>' if self.send_confirmation and self.customer_email else ''}
-            """,
-            subject="Site Visit Scheduled"
-        )
-        
-        return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': 'Site Visit Scheduled!',
-                'message': f'Site visit scheduled for {self.visit_date.strftime("%Y-%m-%d %H:%M")}',
-                'type': 'success',
-                'sticky': False,
-            }
-        }
-    
-    def _send_confirmation_email(self, calendar_event):
-        """Send confirmation email to customer"""
-        
-        email_template = self.env.ref('solar_algarve_automations.site_visit_confirmation_email', raise_if_not_found=False)
-        
-        if not email_template:
-            # Create a simple email if template doesn't exist
-            mail_values = {
-                'subject': f'Solar Site Visit Confirmation - {calendar_event.start.strftime("%B %d, %Y")}',
-                'email_to': self.customer_email,
-                'body_html': f"""
-<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-    <h2 style="color: #2E7D32;">Solar Site Visit Confirmation</h2>
-    
-    <p>Dear {self.customer_name},</p>
-    
-    <p>Thank you for your interest in solar energy! We're excited to confirm your site visit appointment:</p>
-    
-    <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <h3>Appointment Details:</h3>
-        <p><strong>Date:</strong> {calendar_event.start.strftime('%A, %B %d, %Y')}</p>
-        <p><strong>Time:</strong> {calendar_event.start.strftime('%I:%M %p')}</p>
-        <p><strong>Duration:</strong> {self.duration} hours</p>
-        <p><strong>Address:</strong> {self.visit_address}</p>
-        <p><strong>Technician:</strong> {self.assigned_user_id.name}</p>
-    </div>
-    
-    <h3>What to Expect:</h3>
-    <ul>
-        <li>Roof condition and orientation assessment</li>
-        <li>Electrical panel evaluation</li>
-        <li>Shading analysis</li>
-        <li>Preliminary system sizing discussion</li>
-        <li>Q&A session about solar energy</li>
-    </ul>
-    
-    <h3>Please Prepare:</h3>
-    <ul>
-        <li>Recent electricity bills (last 12 months if possible)</li>
-        <li>Access to electrical panel and roof area</li>
-        <li>Any questions about solar energy or our services</li>
-    </ul>
-    
-    <p>If you need to reschedule or have any questions, please contact us immediately.</p>
-    
-    <p>We look forward to helping you harness the power of the sun!</p>
-    
-    <p>Best regards,<br/>
-    Solar Algarve Team</p>
-</div>
-                """,
-            }
-            
-            mail = self.env['mail.mail'].create(mail_values)
-            mail.send()
-    
-    def _create_post_site_visit_activity(self):
-        """Create follow-up activity for quotation preparation"""
-        activity_note = f"""
-<h3>📋 POST-SITE VISIT QUOTATION PREPARATION</h3>
-
-<b>Customer:</b> {self.customer_name}<br/>
-<b>Site Visit:</b> {self.visit_date.strftime('%Y-%m-%d %H:%M')}<br/>
-<b>Address:</b> {self.visit_address}<br/>
-
-<h4>IMMEDIATE TASKS (within 48 hours):</h4>
-□ Review site visit photos and measurements<br/>
-□ Analyze roof space and optimal panel layout<br/>
-□ Calculate system size based on energy needs<br/>
-□ Design preliminary solar system configuration<br/>
-□ Research local permit requirements<br/>
-□ Calculate production estimates and savings<br/>
-
-<h4>QUOTATION PREPARATION:</h4>
-□ Create detailed system design drawing<br/>
-□ Calculate equipment costs and labor<br/>
-□ Include financing options and incentives<br/>
-□ Prepare ROI analysis and payback period<br/>
-□ Generate professional quotation document<br/>
-□ Schedule quotation presentation call<br/>
-
-<h4>CUSTOMER FOLLOW-UP:</h4>
-□ Send thank you email after site visit<br/>
-□ Provide initial timeline estimate<br/>
-□ Schedule quotation review meeting<br/>
-□ Address any immediate concerns<br/>
-
-<b>DEADLINE:</b> Quotation must be ready within 48 hours of site visit
-        """
-        
-        self.opportunity_id._safe_create_activity(
-            '📋 Prepare Site Visit Quotation',
-            activity_note,
-            'mail.mail_activity_data_todo',
-            days_ahead=2
-        )
-
-
-# EXISTING CLASS (unchanged) - Enhanced Calendar Event
-class CalendarEvent(models.Model):
-    _inherit = 'calendar.event'
-    
-    opportunity_id = fields.Many2one('crm.lead', string='Related Opportunity')
-    
-    def write(self, vals):
-        res = super().write(vals)
-        
-        # If this is a site visit and it's marked as done, update the opportunity
-        if 'state' in vals and vals['state'] == 'done':
-            for event in self:
-                if event.opportunity_id and 'Site Visit' in event.name:
-                    # Mark site visit as completed and create follow-up activity
-                    event.opportunity_id.message_post(
-                        body=f"✅ <b>Site Visit Completed</b><br/>Site assessment finished. Ready for quotation preparation.",
-                        subject="Site Visit Completed"
-                    )
-        
-        return res
-
-    # NEW METHODS - Site Visit Quick Scheduling
-    def action_quick_schedule_site_visit(self):
-        """
-        NEW: Open quick scheduling popup for site visit
-        """
-        return {
-            'type': 'ir.actions.act_window',
-            'name': f'Schedule Site Visit - {self.name}',
-            'res_model': 'site.visit.scheduler.wizard',
-            'view_mode': 'form',
-            'target': 'new',  # Opens as popup
-            'context': {
-                'default_opportunity_id': self.id,
-                'default_customer_name': self.partner_id.name if self.partner_id else self.contact_name,
-                'default_customer_phone': self.phone,
-                'default_customer_email': self.email_from,
-                'default_visit_address': self._get_visit_address(),
-                'default_duration': 2.0,
-                'default_assigned_user_id': self.user_id.id,
-            }
-        }
-
-    def _get_visit_address(self):
-        """NEW: Get formatted address for site visit"""
-        if self.partner_id:
-            return self.partner_id._display_address() or 'Address to be confirmed'
-        
-        return self._get_full_address() or 'Address to be confirmed'
-
-    # EXISTING METHOD (unchanged)
     def _get_full_address(self):
         """Get formatted full address"""
         address_parts = []
@@ -637,7 +328,6 @@ class CalendarEvent(models.Model):
         
         return ', '.join(address_parts) if address_parts else None
 
-    # EXISTING METHOD (unchanged)
     def action_schedule_site_visit(self):
         """Action to schedule a site visit calendar event"""
         return {
@@ -655,7 +345,6 @@ class CalendarEvent(models.Model):
             }
         }
 
-    # EXISTING METHOD (unchanged)
     def _check_stage_progression(self, vals):
         """Check if stage should progress based on field updates"""
         
@@ -670,7 +359,6 @@ class CalendarEvent(models.Model):
                         subject="Site Visit Scheduled"
                     )
         
-        # (keeping all your existing progression logic unchanged)
         # Installation meeting scheduled -> Scheduling stage
         elif 'x_installation_meeting_id' in vals and vals['x_installation_meeting_id']:
             self._auto_progress_to_scheduling()
@@ -688,7 +376,6 @@ class CalendarEvent(models.Model):
              ('x_customer_signature' in vals and vals['x_customer_signature']):
             self._check_project_completion()
 
-    # ALL YOUR EXISTING METHODS (unchanged)
     def _auto_progress_to_scheduling(self):
         """Move to Scheduling when installation meeting is scheduled"""
         if self.stage_id.name in ['Ordered', 'Ready to go']:
@@ -941,7 +628,6 @@ FOLLOW-UP SCHEDULE:
             days_ahead=1
         )
 
-    # EXISTING METHOD (unchanged)
     def _safe_create_activity(self, summary, note, activity_type_ref, days_ahead=1):
         """Safely create activity with error handling"""
         try:
@@ -980,249 +666,9 @@ FOLLOW-UP SCHEDULE:
                 body=f"<b>{summary}</b><br/>{formatted_note}",
                 subject=summary
             )
-            try:
-                activity_type = self.env.ref(activity_type_ref)
-            except ValueError:
-                # Fallback to a basic activity type if the specific one doesn't exist
-                activity_type = self.env.ref('mail.mail_activity_data_todo')
-            
-            # Calculate due date
-            due_date = fields.Date.today() + timedelta(days=days_ahead)
-            
-            # Create the activity
-            activity_vals = {
-                'activity_type_id': activity_type.id,
-                'summary': summary,
-                'note': note,
-                'res_id': self.id,
-                'res_model_id': model_id.id,
-                'user_id': self.user_id.id or self.env.user.id,
-                'date_deadline': due_date,
-            }
-            
-            # Check for existing similar activity to avoid duplicates
-            existing_activity = self.env['mail.activity'].search([
-                ('res_model', '=', 'crm.lead'),
-                ('res_id', '=', self.id),
-                ('summary', '=', summary),
-                ('user_id', '=', activity_vals['user_id']),
-            ], limit=1)
-            
-            if not existing_activity:
-                self.env['mail.activity'].create(activity_vals)
-                
-        except Exception as e:
-            # Log the error but don't break the workflow
-            import logging
-            _logger = logging.getLogger(__name__)
-            _logger.warning(f"Could not create activity '{summary}' for lead {self.id}: {e}")
-            
-            # Create a simple fallback activity
-            try:
-                self.activity_schedule(
-                    'mail.mail_activity_data_todo',
-                    summary=summary,
-                    note=f"Activity creation error - please review. Original note: {note[:100]}...",
-                    date_deadline=fields.Date.today() + timedelta(days=days_ahead)
-                )
-            except Exception as fallback_error:
-                _logger.error(f"Fallback activity creation also failed: {fallback_error}")
 
 
-# NEW CLASS - Site Visit Scheduler Wizard
-class SiteVisitSchedulerWizard(models.TransientModel):
-    _name = 'site.visit.scheduler.wizard'
-    _description = 'Quick Site Visit Scheduler'
-
-    opportunity_id = fields.Many2one('crm.lead', string='Opportunity', required=True)
-    customer_name = fields.Char(string='Customer Name', required=True)
-    customer_phone = fields.Char(string='Phone Number')
-    customer_email = fields.Char(string='Email Address')
-    visit_address = fields.Text(string='Visit Address', required=True)
-    
-    visit_date = fields.Datetime(string='Visit Date & Time', required=True, 
-                                default=lambda self: fields.Datetime.now() + timedelta(days=1, hours=10))
-    duration = fields.Float(string='Duration (hours)', default=2.0)
-    assigned_user_id = fields.Many2one('res.users', string='Assigned To', required=True,
-                                      default=lambda self: self.env.user)
-    
-    visit_notes = fields.Text(string='Visit Notes', 
-                             default="Solar site assessment - roof evaluation, electrical panel inspection, and system design consultation.")
-    
-    send_confirmation = fields.Boolean(string='Send Email Confirmation', default=True)
-    
-    def action_schedule_visit(self):
-        """Create the site visit calendar event and update opportunity"""
-        
-        # Create calendar event
-        calendar_vals = {
-            'name': f'Site Visit - {self.customer_name} ({self.opportunity_id.name})',
-            'description': f"""
-Solar Site Visit Assessment
-
-Customer: {self.customer_name}
-Phone: {self.customer_phone or 'Not provided'}
-Email: {self.customer_email or 'Not provided'}
-
-Address: {self.visit_address}
-
-Agenda:
-- Roof condition and orientation assessment
-- Electrical panel evaluation
-- Shading analysis
-- Preliminary system sizing
-- Customer consultation
-
-Notes: {self.visit_notes}
-            """,
-            'start': self.visit_date,
-            'stop': self.visit_date + timedelta(hours=self.duration),
-            'duration': self.duration,
-            'user_id': self.assigned_user_id.id,
-            'partner_ids': [(6, 0, [self.opportunity_id.partner_id.id] if self.opportunity_id.partner_id else [])],
-            'opportunity_id': self.opportunity_id.id,
-            'location': self.visit_address,
-            'privacy': 'public',
-            'show_as': 'busy',
-        }
-        
-        calendar_event = self.env['calendar.event'].create(calendar_vals)
-        
-        # Update the opportunity with site visit link
-        self.opportunity_id.write({
-            'x_site_visit_event_id': calendar_event.id,
-        })
-        
-        # Send confirmation email if requested
-        if self.send_confirmation and self.customer_email:
-            self._send_confirmation_email(calendar_event)
-        
-        # Create follow-up activity for post-visit quotation
-        self._create_post_site_visit_activity()
-        
-        # Post message to opportunity
-        self.opportunity_id.message_post(
-            body=f"""
-📅 <b>Site Visit Scheduled</b><br/>
-<b>Date:</b> {self.visit_date.strftime('%Y-%m-%d %H:%M')}<br/>
-<b>Duration:</b> {self.duration} hours<br/>
-<b>Assigned to:</b> {self.assigned_user_id.name}<br/>
-<b>Address:</b> {self.visit_address}<br/>
-{'<b>Email confirmation sent to customer</b>' if self.send_confirmation and self.customer_email else ''}
-            """,
-            subject="Site Visit Scheduled"
-        )
-        
-        return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': 'Site Visit Scheduled!',
-                'message': f'Site visit scheduled for {self.visit_date.strftime("%Y-%m-%d %H:%M")}',
-                'type': 'success',
-                'sticky': False,
-            }
-        }
-    
-    def _send_confirmation_email(self, calendar_event):
-        """Send confirmation email to customer"""
-        
-        email_template = self.env.ref('solar_algarve_automations.site_visit_confirmation_email', raise_if_not_found=False)
-        
-        if not email_template:
-            # Create a simple email if template doesn't exist
-            mail_values = {
-                'subject': f'Solar Site Visit Confirmation - {calendar_event.start.strftime("%B %d, %Y")}',
-                'email_to': self.customer_email,
-                'body_html': f"""
-<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-    <h2 style="color: #2E7D32;">Solar Site Visit Confirmation</h2>
-    
-    <p>Dear {self.customer_name},</p>
-    
-    <p>Thank you for your interest in solar energy! We're excited to confirm your site visit appointment:</p>
-    
-    <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <h3>Appointment Details:</h3>
-        <p><strong>Date:</strong> {calendar_event.start.strftime('%A, %B %d, %Y')}</p>
-        <p><strong>Time:</strong> {calendar_event.start.strftime('%I:%M %p')}</p>
-        <p><strong>Duration:</strong> {self.duration} hours</p>
-        <p><strong>Address:</strong> {self.visit_address}</p>
-        <p><strong>Technician:</strong> {self.assigned_user_id.name}</p>
-    </div>
-    
-    <h3>What to Expect:</h3>
-    <ul>
-        <li>Roof condition and orientation assessment</li>
-        <li>Electrical panel evaluation</li>
-        <li>Shading analysis</li>
-        <li>Preliminary system sizing discussion</li>
-        <li>Q&A session about solar energy</li>
-    </ul>
-    
-    <h3>Please Prepare:</h3>
-    <ul>
-        <li>Recent electricity bills (last 12 months if possible)</li>
-        <li>Access to electrical panel and roof area</li>
-        <li>Any questions about solar energy or our services</li>
-    </ul>
-    
-    <p>If you need to reschedule or have any questions, please contact us immediately.</p>
-    
-    <p>We look forward to helping you harness the power of the sun!</p>
-    
-    <p>Best regards,<br/>
-    Solar Algarve Team</p>
-</div>
-                """,
-            }
-            
-            mail = self.env['mail.mail'].create(mail_values)
-            mail.send()
-    
-    def _create_post_site_visit_activity(self):
-        """Create follow-up activity for quotation preparation"""
-        activity_note = f"""
-<h3>📋 POST-SITE VISIT QUOTATION PREPARATION</h3>
-
-<b>Customer:</b> {self.customer_name}<br/>
-<b>Site Visit:</b> {self.visit_date.strftime('%Y-%m-%d %H:%M')}<br/>
-<b>Address:</b> {self.visit_address}<br/>
-
-<h4>IMMEDIATE TASKS (within 48 hours):</h4>
-□ Review site visit photos and measurements<br/>
-□ Analyze roof space and optimal panel layout<br/>
-□ Calculate system size based on energy needs<br/>
-□ Design preliminary solar system configuration<br/>
-□ Research local permit requirements<br/>
-□ Calculate production estimates and savings<br/>
-
-<h4>QUOTATION PREPARATION:</h4>
-□ Create detailed system design drawing<br/>
-□ Calculate equipment costs and labor<br/>
-□ Include financing options and incentives<br/>
-□ Prepare ROI analysis and payback period<br/>
-□ Generate professional quotation document<br/>
-□ Schedule quotation presentation call<br/>
-
-<h4>CUSTOMER FOLLOW-UP:</h4>
-□ Send thank you email after site visit<br/>
-□ Provide initial timeline estimate<br/>
-□ Schedule quotation review meeting<br/>
-□ Address any immediate concerns<br/>
-
-<b>DEADLINE:</b> Quotation must be ready within 48 hours of site visit
-        """
-        
-        self.opportunity_id._safe_create_activity(
-            '📋 Prepare Site Visit Quotation',
-            activity_note,
-            'mail.mail_activity_data_todo',
-            days_ahead=2
-        )
-
-
-# EXISTING CLASS (unchanged) - Enhanced Calendar Event
+# Extend Calendar Event to link back to opportunities
 class CalendarEvent(models.Model):
     _inherit = 'calendar.event'
     
