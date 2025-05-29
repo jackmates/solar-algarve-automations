@@ -61,6 +61,23 @@ class CrmLead(models.Model):
                         'mail.mail_activity_data_todo',
                         days_ahead=0
                     )
+            # If moved manually to Commissioned, trigger final invoice activity
+            stage = self.env['crm.stage'].browse(vals['stage_id'])
+            if stage.name == 'Commissioned':
+                for lead in self:
+                    note = (
+                        "<h4>📃 FINAL INVOICE</h4>"
+                        f"<b>Project:</b> {lead.name}<br/>"
+                        "□ Generate final invoice for the customer<br/>"
+                        "□ Review invoice details and totals<br/>"
+                        "□ Send invoice to customer and log the dispatch<br/>"
+                    )
+                    lead._safe_create_activity(
+                        '📃 Send Final Invoice',
+                        note,
+                        'mail.mail_activity_data_todo',
+                        days_ahead=0
+                    )
         
         # Auto-progress stages based on field updates
         self._check_stage_progression(vals)
@@ -512,6 +529,21 @@ Create installation meeting in calendar and move to 'Scheduling' stage
                     body=f"⚡ <b>Progress Update</b><br/>{message}",
                     subject=f"Installation Progress: {progress_value.replace('_', ' ').title()}"
                 )
+                # Automatic invoice activity when commissioning completes
+                if progress_value == 'system_commissioned':
+                    note = (
+                        "<h4>📃 FINAL INVOICE</h4>"
+                        f"<b>Project:</b> {self.name}<br/>"
+                        "□ Generate final invoice for the customer<br/>"
+                        "□ Review invoice details and totals<br/>"
+                        "□ Send invoice to customer and log the dispatch<br/>"
+                    )
+                    self._safe_create_activity(
+                        '📃 Send Final Invoice',
+                        note,
+                        'mail.mail_activity_data_todo',
+                        days_ahead=0
+                    )
 
     def _auto_progress_to_permits(self):
         """Move to Permits when permits are submitted"""
