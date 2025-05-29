@@ -757,6 +757,29 @@ FOLLOW-UP SCHEDULE:
                     "Automatically moving to <b>Picking</b> stage."
                 )
             )
+            # Create picking preparation activity linking to the quotation
+            sale = self.env['sale.order'].search([
+                ('opportunity_id', '=', lead.id),
+                ('state', 'in', ['draft', 'sent'])
+            ], limit=1)
+            if sale:
+                sale_link = f"/web#id={sale.id}&model=sale.order&view_type=form"
+                sale_name = sale.name
+            else:
+                sale_link = ''
+                sale_name = 'Quotation'
+            note = (
+                f"<h4>🧰 PICKING PREPARATION</h4>"
+                f"<b>Quotation:</b> <a href='{sale_link}' target='_blank'>{sale_name}</a><br/>"
+                "□ Gather all equipment items as per quotation<br/>"
+                "□ Begin building BRES boxes and other pre-install assemblies<br/>"
+            )
+            lead._safe_create_activity(
+                '🧰 Prepare for Picking',
+                note,
+                'mail.mail_activity_data_todo',
+                days_ahead=0
+            )
 
 
 # Extend Calendar Event to link back to opportunities
