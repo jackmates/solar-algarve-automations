@@ -1,97 +1,199 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        
-        <!-- Enhanced CRM Form with Site Visit Scheduling -->
-        <record id="crm_lead_view_form_site_visit_scheduler" model="ir.ui.view">
-            <field name="name">CRM Lead Form - Site Visit Scheduler</field>
-            <field name="model">crm.lead</field>
-            <field name="inherit_id" ref="crm.crm_lead_view_form"/>
-            <field name="arch" type="xml">
+    <!-- Site Visit Scheduler Wizard Form View -->
+    <record id="view_site_visit_scheduler_wizard_form" model="ir.ui.view">
+        <field name="name">site.visit.scheduler.wizard.form</field>
+        <field name="model">site.visit.scheduler.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Schedule Site Visit">
+                <header>
+                    <button name="action_schedule_visit" string="📅 Schedule Visit" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </header>
                 
-                <!-- Add Site Visit section to Team Assignment tab -->
-                <page name="team_assignment" position="inside">
-                    <group string="Site Visit Scheduling" name="site_visit_group">
-                        <group string="Current Status">
-                            <field name="x_site_visit_event_id" 
-                                   readonly="1"
-                                   options="{'no_create': True, 'no_open': True}"/>
-                            <field name="x_site_visit_status" readonly="1"/>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="opportunity_id" readonly="1" options="{'no_open': True}"/>
+                        </h1>
+                    </div>
+                    
+                    <group>
+                        <group string="Customer Information">
+                            <field name="customer_name" required="1"/>
+                            <field name="customer_phone"/>
+                            <field name="customer_email"/>
                         </group>
-                        <group string="Quick Actions">
-                            <div class="oe_button_box" style="margin-top: 10px;">
-                                <!-- Quick Schedule Button (Primary) -->
-                                <button name="action_quick_schedule_site_visit" 
-                                        string="📅 Quick Schedule Site Visit" 
-                                        type="object" 
-                                        class="btn-primary btn-lg"
-                                        style="margin: 5px;"
-                                        attrs="{'invisible': [('x_site_visit_event_id', '!=', False)]}"/>
-                                
-                                <!-- Full Schedule Button (Secondary) -->
-                                <button name="action_schedule_site_visit_full" 
-                                        string="🗓️ Advanced Schedule" 
-                                        type="object" 
-                                        class="btn-secondary"
-                                        style="margin: 5px;"
-                                        attrs="{'invisible': [('x_site_visit_event_id', '!=', False)]}"/>
-                                
-                                <!-- View Scheduled Visit -->
-                                <button name="action_view_site_visit" 
-                                        string="👁️ View Site Visit" 
-                                        type="object" 
-                                        class="btn-info"
-                                        style="margin: 5px;"
-                                        attrs="{'invisible': [('x_site_visit_event_id', '=', False)]}"/>
-                                
-                                <!-- Reschedule Button -->
-                                <button name="action_quick_schedule_site_visit" 
-                                        string="🔄 Reschedule" 
-                                        type="object" 
-                                        class="btn-warning"
-                                        style="margin: 5px;"
-                                        attrs="{'invisible': ['|', ('x_site_visit_event_id', '=', False), ('x_site_visit_status', '=', 'completed')]}"/>
-                            </div>
+                        
+                        <group string="Visit Details">
+                            <field name="visit_date" required="1"/>
+                            <field name="duration" widget="float_time"/>
+                            <field name="assigned_user_id" required="1" domain="[('share', '=', False)]"/>
                         </group>
                     </group>
-                </page>
-
-                <!-- Add Site Visit smart button to button box -->
-                <div name="button_box" position="inside">
-                    <button name="action_view_site_visit" 
-                            type="object" 
-                            class="oe_stat_button" 
-                            icon="fa-calendar-check-o"
-                            attrs="{'invisible': [('x_site_visit_event_id', '=', False)]}">
-                        <div class="o_stat_info">
-                            <span class="o_stat_text">Site Visit</span>
-                            <field name="x_site_visit_status" class="o_stat_value"/>
-                        </div>
-                    </button>
-                </div>
-
-            </field>
-        </record>
-
-        <!-- Site Visit Scheduler Wizard Form -->
-        <record id="site_visit_scheduler_wizard_form" model="ir.ui.view">
-            <field name="name">Site Visit Quick Scheduler</field>
-            <field name="model">site.visit.scheduler.wizard</field>
-            <field name="arch" type="xml">
-                <form string="Schedule Site Visit">
-                    <header>
-                        <button name="action_schedule_visit" 
-                                string="Schedule Visit" 
-                                type="object" 
-                                class="btn-primary"/>
-                        <button string="Cancel" 
-                                class="btn-secondary" 
-                                special="cancel"/>
-                    </header>
                     
-                    <sheet>
-                        <group>
-                            <group string="Customer Information" name="customer_info">
-                                <field name="opportunity_id" invisible="1"/>
-                                <field name="customer_name" readonly="1"/>
-                                <field name="customer_
+                    <group string="Visit Location">
+                        <field name="visit_address" required="1" widget="text" placeholder="Enter complete address for the site visit..."/>
+                    </group>
+                    
+                    <group string="Additional Details">
+                        <field name="visit_notes" widget="text" placeholder="Any specific notes about this site visit..."/>
+                        <field name="send_confirmation"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Enhanced CRM Lead Form View - Add Site Visit Scheduling -->
+    <record id="view_crm_lead_form_site_visit" model="ir.ui.view">
+        <field name="name">crm.lead.form.site.visit</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+        <field name="arch" type="xml">
+            
+            <!-- Add site visit status field in header -->
+            <xpath expr="//field[@name='tag_ids']" position="after">
+                <field name="x_site_visit_status" widget="badge" 
+                       decoration-success="x_site_visit_status == 'completed'"
+                       decoration-warning="x_site_visit_status == 'scheduled'"
+                       decoration-info="x_site_visit_status == 'not_scheduled'"
+                       decoration-danger="x_site_visit_status == 'cancelled'"/>
+            </xpath>
+            
+            <!-- Add Quick Schedule button in header -->
+            <xpath expr="//button[@name='action_schedule_meeting']" position="after">
+                <button name="action_quick_schedule_site_visit" 
+                        string="📅 Quick Schedule Site Visit" 
+                        type="object" 
+                        class="btn-success"
+                        attrs="{'invisible': [('x_site_visit_status', 'in', ['scheduled', 'completed'])]}"/>
+            </xpath>
+            
+            <!-- Add site visit field to the form -->
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="x_site_visit_event_id" options="{'no_create': True}"/>
+            </xpath>
+            
+        </field>
+    </record>
+
+    <!-- Site Visit Status in List View -->
+    <record id="view_crm_lead_tree_site_visit" model="ir.ui.view">
+        <field name="name">crm.lead.tree.site.visit</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_case_tree_view_oppor"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='activity_date_deadline']" position="after">
+                <field name="x_site_visit_status" widget="badge" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Site Visit Calendar View Enhancement -->
+    <record id="view_calendar_event_form_solar" model="ir.ui.view">
+        <field name="name">calendar.event.form.solar</field>
+        <field name="model">calendar.event</field>
+        <field name="inherit_id" ref="calendar.view_calendar_event_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_ids']" position="after">
+                <field name="opportunity_id" options="{'no_create': True}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Email Template for Site Visit Confirmations -->
+    <record id="site_visit_confirmation_email" model="mail.template">
+        <field name="name">Site Visit Confirmation Email</field>
+        <field name="model_id" ref="model_calendar_event"/>
+        <field name="subject">Solar Site Visit Confirmation - {{ object.start.strftime('%B %d, %Y') }}</field>
+        <field name="email_to">{{ object.opportunity_id.email_from }}</field>
+        <field name="email_from">{{ user.email }}</field>
+        <field name="body_html"><![CDATA[
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+    <div style="background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%); color: white; padding: 30px; text-align: center;">
+        <h1 style="margin: 0; font-size: 28px;">☀️ Solar Site Visit Confirmation</h1>
+    </div>
+    
+    <div style="padding: 30px;">
+        <p style="font-size: 16px; color: #333;">Dear {{ object.opportunity_id.partner_id.name or object.opportunity_id.contact_name }},</p>
+        
+        <p style="color: #555; line-height: 1.6;">Thank you for your interest in solar energy! We're excited to confirm your site visit appointment:</p>
+        
+        <div style="background-color: #f8f9fa; padding: 25px; border-radius: 10px; margin: 25px 0; border-left: 4px solid #4CAF50;">
+            <h3 style="color: #2E7D32; margin-top: 0;">📅 Appointment Details</h3>
+            <table style="width: 100%; line-height: 1.8;">
+                <tr><td style="font-weight: bold; width: 120px;">Date:</td><td>{{ object.start.strftime('%A, %B %d, %Y') }}</td></tr>
+                <tr><td style="font-weight: bold;">Time:</td><td>{{ object.start.strftime('%I:%M %p') }}</td></tr>
+                <tr><td style="font-weight: bold;">Duration:</td><td>{{ object.duration }} hours</td></tr>
+                <tr><td style="font-weight: bold;">Address:</td><td>{{ object.location }}</td></tr>
+                <tr><td style="font-weight: bold;">Technician:</td><td>{{ object.user_id.name }}</td></tr>
+            </table>
+        </div>
+        
+        <div style="background-color: #e8f5e9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #2E7D32; margin-top: 0;">🔍 What to Expect During Your Visit</h3>
+            <ul style="color: #555; line-height: 1.6; margin: 0; padding-left: 20px;">
+                <li>Comprehensive roof condition and orientation assessment</li>
+                <li>Electrical panel evaluation and compatibility check</li>
+                <li>Detailed shading analysis throughout the day</li>
+                <li>Preliminary system sizing based on your energy needs</li>
+                <li>Professional consultation about solar benefits</li>
+                <li>Q&A session to address all your questions</li>
+            </ul>
+        </div>
+        
+        <div style="background-color: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #F57C00; margin-top: 0;">📋 Please Prepare These Items</h3>
+            <ul style="color: #555; line-height: 1.6; margin: 0; padding-left: 20px;">
+                <li>Recent electricity bills (last 12 months if available)</li>
+                <li>Easy access to your electrical panel</li>
+                <li>Clear path to roof access areas</li>
+                <li>List of questions about solar energy or our services</li>
+                <li>Property ownership documentation (if applicable)</li>
+            </ul>
+        </div>
+        
+        <div style="background-color: #f3e5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #7B1FA2; margin-top: 0;">📞 Contact Information</h3>
+            <p style="color: #555; margin: 0;">If you need to reschedule or have any questions:</p>
+            <p style="color: #555; margin: 5px 0;"><strong>Phone:</strong> {{ user.phone or company.phone }}</p>
+            <p style="color: #555; margin: 5px 0;"><strong>Email:</strong> {{ user.email }}</p>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <p style="font-size: 18px; color: #2E7D32; font-weight: bold;">We look forward to helping you harness the power of the sun! ☀️</p>
+        </div>
+        
+        <div style="border-top: 2px solid #e0e0e0; padding-top: 20px; text-align: center; color: #666;">
+            <p style="margin: 0;">Best regards,</p>
+            <p style="margin: 5px 0; font-weight: bold; color: #2E7D32;">{{ user.name }}</p>
+            <p style="margin: 0;">Solar Algarve Team</p>
+        </div>
+    </div>
+    
+    <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; color: #666;">
+        <p style="margin: 0;">This email was sent regarding your solar consultation request.</p>
+    </div>
+</div>
+        ]]></field>
+    </record>
+
+    <!-- Menu Item for Site Visit Scheduler (optional) -->
+    <record id="menu_site_visit_scheduler" model="ir.ui.menu">
+        <field name="name">Site Visit Scheduler</field>
+        <field name="parent_id" ref="crm.crm_menu_config"/>
+        <field name="action" ref="action_site_visit_scheduler_wizard"/>
+        <field name="sequence">10</field>
+    </record>
+
+    <!-- Action for Site Visit Scheduler -->
+    <record id="action_site_visit_scheduler_wizard" model="ir.actions.act_window">
+        <field name="name">Schedule Site Visit</field>
+        <field name="res_model">site.visit.scheduler.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{}</field>
+    </record>
+
+</odoo>
