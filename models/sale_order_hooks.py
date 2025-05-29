@@ -727,6 +727,36 @@ FOLLOW-UP SCHEDULE:
             )
 
 
+    @api.model
+    def _cron_move_to_picking(self):
+        """Move leads to 'Picking' 5 working days before installation."""
+        today = fields.Date.context_today(self)
+        days = 0
+        check_date = today
+        while days < 5:
+            check_date = check_date + timedelta(days=1)
+            # Weekday: Mon=0 ... Sun=6
+            if check_date.weekday() < 5:
+                days += 1
+        picking_stage = self.env['crm.stage'].search([('name', '=', 'Picking')], limit=1)
+        if not picking_stage:
+            return
+        leads = self.search([
+            ('x_installation_meeting_id.start', '>=', check_date),
+            ('x_installation_meeting_id.start', '<', check_date + timedelta(days=1)),
+            ('stage_id', '!=', picking_stage.id),
+        ])
+        for lead in leads:
+            lead.stage_id = picking_stage.id
+            lead.message_post(
+                subject="↔️ Auto‑moved to Picking",
+                body=(
+                    f"Installation is scheduled for {check_date.strftime('%Y-%m-%d')}. "
+                    "Automatically moving to <b>Picking</b> stage."
+                )
+            )
+
+
 # Extend Calendar Event to link back to opportunities
 class CalendarEvent(models.Model):
     _inherit = 'calendar.event'
