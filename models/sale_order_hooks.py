@@ -38,31 +38,32 @@ class CrmLead(models.Model):
             'New': {
                 'title': '📞 Initial Customer Contact & Site Visit Setup',
                 'note': f"""
-🏠 NEW SOLAR LEAD - {self.name}
+<h3>🏠 NEW SOLAR LEAD - {self.name}</h3>
 
-Customer: {self.partner_id.name if self.partner_id else self.contact_name or 'Contact details needed'}
-Phone: {self.phone or 'Phone number needed'}
-Email: {self.email_from or 'Email needed'}
-Address: {self._get_full_address() or 'Address needed'}
+<b>Customer:</b> {self.partner_id.name if self.partner_id else self.contact_name or 'Contact details needed'}<br/>
+<b>Phone:</b> {self.phone or 'Phone number needed'}<br/>
+<b>Email:</b> {self.email_from or 'Email needed'}<br/>
+<b>Address:</b> {self._get_full_address() or 'Address needed'}<br/>
 
-INITIAL CONTACT CHECKLIST:
-□ Call customer to introduce company and services
-□ Verify contact information and property address
-□ Ask about current electricity bills and usage
-□ Explain solar benefits and our process
-□ Schedule site visit appointment
-□ Send welcome email with company information
-□ Gather preliminary roof/property information
+<h4>INITIAL CONTACT CHECKLIST:</h4>
+□ Call customer to introduce company and services<br/>
+□ Verify contact information and property address<br/>
+□ Ask about current electricity bills and usage<br/>
+□ Explain solar benefits and our process<br/>
+□ Schedule site visit appointment<br/>
+□ Send welcome email with company information<br/>
+□ Gather preliminary roof/property information<br/>
 
-QUALIFICATION QUESTIONS:
-□ Property ownership (own vs rent)
-□ Roof condition and age
-□ Current monthly electricity cost
-□ Interest level and timeline
-□ Budget considerations
-□ Decision-making process
+<h4>QUALIFICATION QUESTIONS:</h4>
+□ Property ownership (own vs rent)<br/>
+□ Roof condition and age<br/>
+□ Current monthly electricity cost<br/>
+□ Interest level and timeline<br/>
+□ Budget considerations<br/>
+□ Decision-making process<br/>
 
-NEXT STEP: Schedule site visit and move to 'Qualified' stage
+<h4>NEXT STEP:</h4>
+Schedule site visit and move to 'Qualified' stage
                 """,
                 'days': 0,
                 'type': 'mail.mail_activity_data_call'
@@ -71,38 +72,39 @@ NEXT STEP: Schedule site visit and move to 'Qualified' stage
             'Qualified': {
                 'title': '🏠 Conduct Site Visit & Create Quotation',
                 'note': f"""
-🔍 SITE VISIT & ASSESSMENT - {self.name}
+<h3>🔍 SITE VISIT & ASSESSMENT - {self.name}</h3>
 
-Customer: {self.partner_id.name if self.partner_id else self.contact_name}
-Site Visit: {self.x_site_visit_event_id.name if hasattr(self, 'x_site_visit_event_id') and self.x_site_visit_event_id else 'Schedule appointment'}
+<b>Customer:</b> {self.partner_id.name if self.partner_id else self.contact_name}<br/>
+<b>Site Visit:</b> {self.x_site_visit_event_id.name if hasattr(self, 'x_site_visit_event_id') and self.x_site_visit_event_id else 'Schedule appointment'}<br/>
 
-SITE VISIT CHECKLIST:
-□ Arrive on time and introduce yourself professionally
-□ Assess roof condition, size, and orientation
-□ Check electrical panel and available space
-□ Measure roof dimensions and note obstacles
-□ Take photos of roof, electrical panel, and site
-□ Discuss energy usage and electricity bills
-□ Explain solar system design options
-□ Answer customer questions and concerns
+<h4>SITE VISIT CHECKLIST:</h4>
+□ Arrive on time and introduce yourself professionally<br/>
+□ Assess roof condition, size, and orientation<br/>
+□ Check electrical panel and available space<br/>
+□ Measure roof dimensions and note obstacles<br/>
+□ Take photos of roof, electrical panel, and site<br/>
+□ Discuss energy usage and electricity bills<br/>
+□ Explain solar system design options<br/>
+□ Answer customer questions and concerns<br/>
 
-TECHNICAL ASSESSMENT:
-□ Roof material and structural integrity
-□ Shading analysis (trees, buildings, etc.)
-□ Electrical system compatibility
-□ Available roof space for panels
-□ Grid connection requirements
-□ Permit requirements for area
+<h4>TECHNICAL ASSESSMENT:</h4>
+□ Roof material and structural integrity<br/>
+□ Shading analysis (trees, buildings, etc.)<br/>
+□ Electrical system compatibility<br/>
+□ Available roof space for panels<br/>
+□ Grid connection requirements<br/>
+□ Permit requirements for area<br/>
 
-POST-VISIT TASKS:
-□ Update customer record with site visit notes
-□ Design preliminary solar system layout
-□ Calculate system size and production estimates
-□ Prepare detailed quotation with options
-□ Include financial analysis and payback period
-□ Schedule quotation presentation
+<h4>POST-VISIT TASKS:</h4>
+□ Update customer record with site visit notes<br/>
+□ Design preliminary solar system layout<br/>
+□ Calculate system size and production estimates<br/>
+□ Prepare detailed quotation with options<br/>
+□ Include financial analysis and payback period<br/>
+□ Schedule quotation presentation<br/>
 
-NEXT STEP: Create and send quotation, move to 'Proposition' stage
+<h4>NEXT STEP:</h4>
+Create and send quotation, move to 'Proposition' stage
                 """,
                 'days': 1,
                 'type': 'mail.mail_activity_data_meeting'
@@ -111,44 +113,45 @@ NEXT STEP: Create and send quotation, move to 'Proposition' stage
             'Proposition': {
                 'title': '💰 Quotation Follow-up & Customer Support',
                 'note': f"""
-📋 QUOTATION FOLLOW-UP - {self.name}
+<h3>📋 QUOTATION FOLLOW-UP - {self.name}</h3>
 
-Customer: {self.partner_id.name if self.partner_id else self.contact_name}
-Quotation Sent: {fields.Date.today().strftime('%Y-%m-%d')}
+<b>Customer:</b> {self.partner_id.name if self.partner_id else self.contact_name}<br/>
+<b>Quotation Sent:</b> {fields.Date.today().strftime('%Y-%m-%d')}<br/>
 
-FOLLOW-UP CHECKLIST:
-□ Confirm customer received quotation (call within 24h)
-□ Schedule presentation call/meeting to review quotation
-□ Answer any questions about system design
-□ Explain financing options and incentives
-□ Address concerns about installation process
-□ Provide references from satisfied customers
-□ Clarify warranty and maintenance terms
+<h4>FOLLOW-UP CHECKLIST:</h4>
+□ Confirm customer received quotation (call within 24h)<br/>
+□ Schedule presentation call/meeting to review quotation<br/>
+□ Answer any questions about system design<br/>
+□ Explain financing options and incentives<br/>
+□ Address concerns about installation process<br/>
+□ Provide references from satisfied customers<br/>
+□ Clarify warranty and maintenance terms<br/>
 
-COMMON QUESTIONS TO PREPARE FOR:
-□ How long will installation take?
-□ What happens during bad weather?
-□ Will system work during power outages?
-□ Maintenance requirements and costs
-□ Warranty coverage details
-□ Permit and inspection process
-□ Property value impact
+<h4>COMMON QUESTIONS TO PREPARE FOR:</h4>
+□ How long will installation take?<br/>
+□ What happens during bad weather?<br/>
+□ Will system work during power outages?<br/>
+□ Maintenance requirements and costs<br/>
+□ Warranty coverage details<br/>
+□ Permit and inspection process<br/>
+□ Property value impact<br/>
 
-SALES SUPPORT:
-□ Calculate return on investment
-□ Compare with competitors if needed
-□ Explain company credentials and experience
-□ Provide financing assistance if needed
-□ Offer system monitoring demonstration
-□ Schedule second opinion visit if requested
+<h4>SALES SUPPORT:</h4>
+□ Calculate return on investment<br/>
+□ Compare with competitors if needed<br/>
+□ Explain company credentials and experience<br/>
+□ Provide financing assistance if needed<br/>
+□ Offer system monitoring demonstration<br/>
+□ Schedule second opinion visit if requested<br/>
 
-FOLLOW-UP SCHEDULE:
-• Day 1: Confirm receipt
-• Day 3: Presentation call
-• Day 7: Check-in call
-• Day 14: Final follow-up
+<h4>FOLLOW-UP SCHEDULE:</h4>
+• Day 1: Confirm receipt<br/>
+• Day 3: Presentation call<br/>
+• Day 7: Check-in call<br/>
+• Day 14: Final follow-up<br/>
 
-NEXT STEP: Close sale and move to 'Won' stage when customer signs
+<h4>NEXT STEP:</h4>
+Close sale and move to 'Won' stage when customer signs
                 """,
                 'days': 1,
                 'type': 'mail.mail_activity_data_call'
@@ -157,44 +160,44 @@ NEXT STEP: Close sale and move to 'Won' stage when customer signs
             'Won': {
                 'title': '🎉 Contract Signed - Initiate Project Setup',
                 'note': f"""
-✅ CONTRACT SIGNED - {self.name}
+<h3>✅ CONTRACT SIGNED - {self.name}</h3>
 
-Customer: {self.partner_id.name if self.partner_id else self.contact_name}
-Sale Amount: {self.expected_revenue or 'Update amount'}
+<b>Customer:</b> {self.partner_id.name if self.partner_id else self.contact_name}<br/>
+<b>Sale Amount:</b> {self.expected_revenue or 'Update amount'}<br/>
 
-IMMEDIATE POST-SALE TASKS:
-□ Send welcome packet with next steps timeline
-□ Create customer file with all documentation
-□ Verify final system specifications
-□ Confirm installation address and access
-□ Schedule permit application submission
-□ Order equipment based on final design
-□ Assign project manager and installation team
-□ Update customer with project timeline
+<h4>IMMEDIATE POST-SALE TASKS:</h4>
+□ Send welcome packet with next steps timeline<br/>
+□ Create customer file with all documentation<br/>
+□ Verify final system specifications<br/>
+□ Confirm installation address and access<br/>
+□ Schedule permit application submission<br/>
+□ Order equipment based on final design<br/>
+□ Assign project manager and installation team<br/>
+□ Update customer with project timeline<br/>
 
-DOCUMENTATION CHECKLIST:
-□ Signed contract and terms
-□ Site assessment photos and notes
-□ System design specifications
-□ Electrical panel photos
-□ Property survey (if required)
-□ HOA approval (if applicable)
-□ Utility account information
+<h4>DOCUMENTATION CHECKLIST:</h4>
+□ Signed contract and terms<br/>
+□ Site assessment photos and notes<br/>
+□ System design specifications<br/>
+□ Electrical panel photos<br/>
+□ Property survey (if required)<br/>
+□ HOA approval (if applicable)<br/>
+□ Utility account information<br/>
 
-PERMIT PREPARATION:
-□ Gather property surveys and site plans
-□ Prepare electrical drawings
-□ Submit utility interconnection application
-□ Apply for local building permits
-□ Schedule utility pre-inspection (if required)
+<h4>PERMIT PREPARATION:</h4>
+□ Gather property surveys and site plans<br/>
+□ Prepare electrical drawings<br/>
+□ Submit utility interconnection application<br/>
+□ Apply for local building permits<br/>
+□ Schedule utility pre-inspection (if required)<br/>
 
-CUSTOMER COMMUNICATION:
-□ Send project timeline and milestones
-□ Provide contact information for project team
-□ Explain permit and inspection process
-□ Set expectations for installation timing
+<h4>CUSTOMER COMMUNICATION:</h4>
+□ Send project timeline and milestones<br/>
+□ Provide contact information for project team<br/>
+□ Explain permit and inspection process<br/>
+□ Set expectations for installation timing<br/>
 
-The system will automatically check equipment availability and create purchase orders if needed.
+<i>The system will automatically check equipment availability and create purchase orders if needed.</i>
                 """,
                 'days': 0,
                 'type': 'mail.mail_activity_data_todo'
@@ -203,41 +206,42 @@ The system will automatically check equipment availability and create purchase o
             'Ordered': {
                 'title': '📦 Equipment Management & Delivery Coordination',
                 'note': f"""
-📦 EQUIPMENT PHASE - {self.name}
+<h3>📦 EQUIPMENT PHASE - {self.name}</h3>
 
-Customer: {self.partner_id.name if self.partner_id else self.contact_name}
-Equipment Status: Ordered/In Transit
+<b>Customer:</b> {self.partner_id.name if self.partner_id else self.contact_name}<br/>
+<b>Equipment Status:</b> Ordered/In Transit<br/>
 
-EQUIPMENT COORDINATION:
-□ Track equipment delivery status with suppliers
-□ Confirm delivery timeline with customer
-□ Arrange equipment storage if needed
-□ Inspect equipment upon delivery
-□ Verify equipment matches order specifications
-□ Update customer on equipment arrival
-□ Coordinate site delivery timing
+<h4>EQUIPMENT COORDINATION:</h4>
+□ Track equipment delivery status with suppliers<br/>
+□ Confirm delivery timeline with customer<br/>
+□ Arrange equipment storage if needed<br/>
+□ Inspect equipment upon delivery<br/>
+□ Verify equipment matches order specifications<br/>
+□ Update customer on equipment arrival<br/>
+□ Coordinate site delivery timing<br/>
 
-PERMIT STATUS CHECK:
-□ Follow up on building permit application
-□ Track utility interconnection approval
-□ Resolve any permit issues or requirements
-□ Schedule inspections once permits approved
-□ Notify customer of permit approval status
+<h4>PERMIT STATUS CHECK:</h4>
+□ Follow up on building permit application<br/>
+□ Track utility interconnection approval<br/>
+□ Resolve any permit issues or requirements<br/>
+□ Schedule inspections once permits approved<br/>
+□ Notify customer of permit approval status<br/>
 
-INSTALLATION PREPARATION:
-□ Confirm installation team availability
-□ Schedule installation dates with customer
-□ Arrange equipment delivery to site
-□ Verify site access and parking arrangements
-□ Confirm any special installation requirements
+<h4>INSTALLATION PREPARATION:</h4>
+□ Confirm installation team availability<br/>
+□ Schedule installation dates with customer<br/>
+□ Arrange equipment delivery to site<br/>
+□ Verify site access and parking arrangements<br/>
+□ Confirm any special installation requirements<br/>
 
-CUSTOMER UPDATE:
-□ Provide weekly progress updates
-□ Confirm contact information for installation
-□ Discuss any site preparation needs
-□ Schedule pre-installation walkthrough
+<h4>CUSTOMER UPDATE:</h4>
+□ Provide weekly progress updates<br/>
+□ Confirm contact information for installation<br/>
+□ Discuss any site preparation needs<br/>
+□ Schedule pre-installation walkthrough<br/>
 
-NEXT STEP: Move to 'Ready to go' when all equipment arrives
+<h4>NEXT STEP:</h4>
+Move to 'Ready to go' when all equipment arrives
                 """,
                 'days': 2,
                 'type': 'mail.mail_activity_data_todo'
@@ -246,42 +250,43 @@ NEXT STEP: Move to 'Ready to go' when all equipment arrives
             'Ready to go': {
                 'title': '🚛 Installation Scheduling & Site Preparation',
                 'note': f"""
-🚛 READY FOR INSTALLATION - {self.name}
+<h3>🚛 READY FOR INSTALLATION - {self.name}</h3>
 
-Customer: {self.partner_id.name if self.partner_id else self.contact_name}
-Equipment: All delivered and ready
+<b>Customer:</b> {self.partner_id.name if self.partner_id else self.contact_name}<br/>
+<b>Equipment:</b> All delivered and ready<br/>
 
-INSTALLATION SCHEDULING:
-□ Contact customer to schedule installation dates
-□ Confirm 2-3 day installation window
-□ Check weather forecast for installation period
-□ Schedule installation team and equipment
-□ Arrange delivery of equipment to site
-□ Confirm site access and parking arrangements
+<h4>INSTALLATION SCHEDULING:</h4>
+□ Contact customer to schedule installation dates<br/>
+□ Confirm 2-3 day installation window<br/>
+□ Check weather forecast for installation period<br/>
+□ Schedule installation team and equipment<br/>
+□ Arrange delivery of equipment to site<br/>
+□ Confirm site access and parking arrangements<br/>
 
-PRE-INSTALLATION REQUIREMENTS:
-□ Verify permits are approved and available
-□ Confirm electrical panel accessibility
-□ Check roof access and safety requirements
-□ Arrange for any required site preparation
-□ Notify neighbors if appropriate
-□ Confirm customer will be available during installation
+<h4>PRE-INSTALLATION REQUIREMENTS:</h4>
+□ Verify permits are approved and available<br/>
+□ Confirm electrical panel accessibility<br/>
+□ Check roof access and safety requirements<br/>
+□ Arrange for any required site preparation<br/>
+□ Notify neighbors if appropriate<br/>
+□ Confirm customer will be available during installation<br/>
 
-CUSTOMER COMMUNICATION:
-□ Call customer to schedule installation
-□ Send installation confirmation with dates
-□ Provide installation team contact information
-□ Explain what to expect during installation
-□ Confirm any special requirements or concerns
-□ Schedule pre-installation walkthrough if needed
+<h4>CUSTOMER COMMUNICATION:</h4>
+□ Call customer to schedule installation<br/>
+□ Send installation confirmation with dates<br/>
+□ Provide installation team contact information<br/>
+□ Explain what to expect during installation<br/>
+□ Confirm any special requirements or concerns<br/>
+□ Schedule pre-installation walkthrough if needed<br/>
 
-TEAM PREPARATION:
-□ Brief installation team on site specifics
-□ Prepare installation drawings and specifications
-□ Ensure all tools and safety equipment ready
-□ Confirm backup plans for weather delays
+<h4>TEAM PREPARATION:</h4>
+□ Brief installation team on site specifics<br/>
+□ Prepare installation drawings and specifications<br/>
+□ Ensure all tools and safety equipment ready<br/>
+□ Confirm backup plans for weather delays<br/>
 
-NEXT STEP: Create installation meeting and move to 'Scheduling'
+<h4>NEXT STEP:</h4>
+Create installation meeting and move to 'Scheduling'
                 """,
                 'days': 1,
                 'type': 'mail.mail_activity_data_call'
@@ -470,21 +475,21 @@ NEXT STEP: Create installation meeting and move to 'Scheduling'
     def _create_installation_preparation_activity(self):
         """Create activity for installation preparation"""
         activity_note = f"""
-🔧 INSTALLATION PREPARATION CHECKLIST
+<h3>🔧 INSTALLATION PREPARATION CHECKLIST</h3>
 
-Project: {self.name}
-Customer: {self.partner_id.name if self.partner_id else 'N/A'}
+<b>Project:</b> {self.name}<br/>
+<b>Customer:</b> {self.partner_id.name if self.partner_id else 'N/A'}<br/>
 
-PRE-INSTALLATION TASKS:
-□ Confirm equipment delivery to site
-□ Verify installation team availability  
-□ Check weather forecast for installation dates
-□ Confirm site access and parking arrangements
-□ Review safety requirements and protocols
-□ Prepare installation documentation
-□ Contact customer 24h before installation
+<h4>PRE-INSTALLATION TASKS:</h4>
+□ Confirm equipment delivery to site<br/>
+□ Verify installation team availability<br/>
+□ Check weather forecast for installation dates<br/>
+□ Confirm site access and parking arrangements<br/>
+□ Review safety requirements and protocols<br/>
+□ Prepare installation documentation<br/>
+□ Contact customer 24h before installation<br/>
 
-INSTALLATION MEETING: {self.x_installation_meeting_id.name if hasattr(self, 'x_installation_meeting_id') and self.x_installation_meeting_id else 'Scheduled'}
+<b>Installation Meeting:</b> {self.x_installation_meeting_id.name if hasattr(self, 'x_installation_meeting_id') and self.x_installation_meeting_id else 'Scheduled'}
         """
         
         self._safe_create_activity(
