@@ -717,7 +717,7 @@ class InstallationPhoto(models.Model):
     _name = 'installation.photo'
     _description = 'Installation Photo'
 
-    name = fields.Char('Filename')
+    name = fields.Char('Description')
     image = fields.Binary('Image', attachment=True)
     lead_id = fields.Many2one('crm.lead', string='Opportunity')
 
